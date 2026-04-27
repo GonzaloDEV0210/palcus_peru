@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PalCus Perú — Moda Casual 100% Algodón Peruano</title>
+  <meta name="description" content="Ropa casual para toda la familia confeccionada con 100% algodón peruano. Mujeres, varones, niños y niñas." />
+  <meta property="og:title" content="PalCus Perú — Moda Casual 100% Algodón Peruano" />
+  <meta property="og:description" content="Ropa casual para toda la familia confeccionada con 100% algodón peruano." />
+  <link rel="icon" href="assets/logo_palcus.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main>
+    <!-- Hero -->
+    <section style="position:relative;height:85vh;min-height:600px;overflow:hidden;">
+      <img src="assets/hero-banner.jpg" alt="PalCus Perú" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
+      <div style="position:absolute;inset:0;background:oklch(0.13 0 0 / 0.4);"></div>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 1rem;">
+        <div>
+          <p class="font-heading" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4em;color:oklch(1 0 0 / 0.8);margin-bottom:1rem;">100% Algodón Peruano</p>
+          <h1 class="font-heading" style="font-size:clamp(3rem,10vw,8rem);font-weight:800;color:#fff;line-height:1;margin:0;">
+            PALCUS
+            <span style="display:block;font-size:clamp(1.5rem,4vw,2.5rem);font-weight:500;letter-spacing:0.5em;margin-top:0.5rem;">PERÚ</span>
+          </h1>
+          <p style="color:oklch(1 0 0 / 0.8);margin-top:1.5rem;font-size:1rem;max-width:28rem;margin-left:auto;margin-right:auto;">Moda casual para toda la familia. Calidad premium con el mejor algodón del mundo.</p>
+          <div style="display:flex;gap:1rem;margin-top:2rem;justify-content:center;flex-wrap:wrap;">
+            <a href="mujeres.html" class="btn-primary" style="background:#fff;color:#000;">Comprar Ahora</a>
+            <a href="varones.html" class="btn-outline" style="border-color:#fff;color:#fff;">Ver Colección</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Categorías -->
+    <section class="section-padding">
+      <div style="max-width:80rem;margin:0 auto;">
+        <h2 class="font-heading" style="font-size:clamp(1.875rem,4vw,2.5rem);font-weight:bold;text-align:center;margin-bottom:0.5rem;">Compra por Categoría</h2>
+        <p style="color:var(--muted-foreground);text-align:center;font-size:0.875rem;margin-bottom:3rem;">Encuentra lo que buscas de forma rápida</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;">
+          <a href="mujeres.html" class="cat-tile" style="position:relative;overflow:hidden;aspect-ratio:3/4;display:block;">
+            <img src="assets/product-casaca-mujer.jpg" alt="Mujeres" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 0.7s;">
+            <div style="position:absolute;inset:0;background:oklch(0.13 0 0 / 0.3);"></div>
+            <div style="position:absolute;inset:0;display:flex;align-items:flex-end;padding:1.5rem;"><span class="font-heading" style="font-size:1.5rem;font-weight:bold;color:#fff;text-transform:uppercase;letter-spacing:0.1em;">Mujeres</span></div>
+          </a>
+          <a href="varones.html" class="cat-tile" style="position:relative;overflow:hidden;aspect-ratio:3/4;display:block;">
+            <img src="assets/product-casaca-varon.jpg" alt="Varones" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 0.7s;">
+            <div style="position:absolute;inset:0;background:oklch(0.13 0 0 / 0.3);"></div>
+            <div style="position:absolute;inset:0;display:flex;align-items:flex-end;padding:1.5rem;"><span class="font-heading" style="font-size:1.5rem;font-weight:bold;color:#fff;text-transform:uppercase;letter-spacing:0.1em;">Varones</span></div>
+          </a>
+          <a href="ninos.html" class="cat-tile" style="position:relative;overflow:hidden;aspect-ratio:3/4;display:block;">
+            <img src="assets/product-casaca-nino.jpg" alt="Niños" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 0.7s;">
+            <div style="position:absolute;inset:0;background:oklch(0.13 0 0 / 0.3);"></div>
+            <div style="position:absolute;inset:0;display:flex;align-items:flex-end;padding:1.5rem;"><span class="font-heading" style="font-size:1.5rem;font-weight:bold;color:#fff;text-transform:uppercase;letter-spacing:0.1em;">Niños</span></div>
+          </a>
+          <a href="ninas.html" class="cat-tile" style="position:relative;overflow:hidden;aspect-ratio:3/4;display:block;">
+            <img src="assets/product-casaca-nina.jpg" alt="Niñas" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 0.7s;">
+            <div style="position:absolute;inset:0;background:oklch(0.13 0 0 / 0.3);"></div>
+            <div style="position:absolute;inset:0;display:flex;align-items:flex-end;padding:1.5rem;"><span class="font-heading" style="font-size:1.5rem;font-weight:bold;color:#fff;text-transform:uppercase;letter-spacing:0.1em;">Niñas</span></div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Destacados -->
+    <section class="section-padding" style="background:var(--accent);">
+      <div style="max-width:80rem;margin:0 auto;">
+        <h2 class="font-heading" style="font-size:clamp(1.875rem,4vw,2.5rem);font-weight:bold;text-align:center;margin-bottom:0.5rem;">Productos Destacados</h2>
+        <p style="color:var(--muted-foreground);text-align:center;font-size:0.875rem;margin-bottom:3rem;">Lo más vendido y lo más nuevo</p>
+        <div id="featured-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;"></div>
+      </div>
+    </section>
+
+    <!-- Promesa Algodón -->
+    <section class="section-padding">
+      <div style="max-width:48rem;margin:0 auto;text-align:center;">
+        <p class="font-heading" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4em;color:var(--muted-foreground);margin-bottom:1rem;">Nuestra promesa</p>
+        <h2 class="font-heading" style="font-size:clamp(2.5rem,6vw,4rem);font-weight:800;line-height:1.1;margin-bottom:1.5rem;">100% Algodón<br>Peruano</h2>
+        <p style="color:var(--muted-foreground);max-width:32rem;margin:0 auto;line-height:1.7;">Cada prenda de PalCus está confeccionada con el mejor algodón pima del Perú. Suavidad, durabilidad y confort en cada fibra.</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin-top:3rem;max-width:28rem;margin-left:auto;margin-right:auto;">
+          <div><p class="font-heading" style="font-size:1.875rem;font-weight:bold;margin:0;">100%</p><p style="font-size:0.75rem;color:var(--muted-foreground);text-transform:uppercase;letter-spacing:0.1em;margin-top:0.25rem;">Algodón</p></div>
+          <div><p class="font-heading" style="font-size:1.875rem;font-weight:bold;margin:0;">Premium</p><p style="font-size:0.75rem;color:var(--muted-foreground);text-transform:uppercase;letter-spacing:0.1em;margin-top:0.25rem;">Calidad</p></div>
+          <div><p class="font-heading" style="font-size:1.875rem;font-weight:bold;margin:0;">Perú</p><p style="font-size:0.75rem;color:var(--muted-foreground);text-transform:uppercase;letter-spacing:0.1em;margin-top:0.25rem;">Origen</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Más nuevo -->
+    <section class="section-padding" style="background:var(--accent);">
+      <div style="max-width:80rem;margin:0 auto;">
+        <h2 class="font-heading" style="font-size:clamp(1.875rem,4vw,2.5rem);font-weight:bold;text-align:center;margin-bottom:3rem;">Lo Más Nuevo</h2>
+        <div id="newest-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;"></div>
+      </div>
+    </section>
+
+    <!-- WhatsApp CTA -->
+    <section class="section-padding">
+      <div style="max-width:32rem;margin:0 auto;text-align:center;">
+        <h2 class="font-heading" style="font-size:1.875rem;font-weight:bold;margin-bottom:1rem;">¿Necesitas ayuda?</h2>
+        <p style="color:var(--muted-foreground);margin-bottom:2rem;">Escríbenos por WhatsApp y te atendemos al instante. Resolvemos tus dudas sobre tallas, disponibilidad y envíos.</p>
+        <a href="https://wa.me/51999999999?text=Hola%20PalCus%20Per%C3%BA!" target="_blank" rel="noopener" class="btn-primary">💬 Escríbenos por WhatsApp</a>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <div id="site-floating"></div>
+
+  <style>.cat-tile:hover img{transform:scale(1.1);}</style>
+
+  <script src="js/products.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      window.PalcusRender.renderGrid('featured-grid', window.PALCUS_PRODUCTS.filter(p => p.tag));
+      window.PalcusRender.renderGrid('newest-grid', window.PALCUS_PRODUCTS.slice(0, 4));
+    });
+  </script>
+</body>
+</html>

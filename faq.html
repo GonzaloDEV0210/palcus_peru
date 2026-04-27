@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Preguntas Frecuentes — PalCus Perú</title>
+  <meta name="description" content="Resolvemos tus dudas sobre pedidos, tallas, envíos y más en PalCus Perú." />
+  <meta property="og:title" content="Preguntas Frecuentes — PalCus Perú" />
+  <link rel="icon" href="assets/logo_palcus.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="section-padding">
+    <div style="max-width:48rem;margin:0 auto;">
+      <div style="text-align:center;margin-bottom:3rem;">
+        <p class="font-heading" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4em;color:var(--muted-foreground);margin-bottom:0.5rem;">Ayuda</p>
+        <h1 class="font-heading" style="font-size:clamp(2.25rem,5vw,3rem);font-weight:800;margin:0;">Preguntas Frecuentes</h1>
+      </div>
+      <div id="faq-list"></div>
+      <div style="margin-top:3rem;text-align:center;background:var(--accent);padding:2rem;">
+        <p class="font-heading" style="font-size:1.125rem;font-weight:bold;margin-bottom:0.5rem;">¿No encontraste tu respuesta?</p>
+        <p style="color:var(--muted-foreground);font-size:0.875rem;margin-bottom:1rem;">Escríbenos y te ayudamos</p>
+        <a href="https://wa.me/51999999999?text=Hola%20PalCus%20Per%C3%BA!%20Tengo%20una%20pregunta" target="_blank" rel="noopener" class="btn-primary">Consultar por WhatsApp</a>
+      </div>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <div id="site-floating"></div>
+  <script src="js/products.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    const FAQS = [
+      { q: '¿Cómo realizo un pedido?', a: 'Selecciona los productos, elige tu talla, agrégalos al carrito y al finalizar envía tu pedido por WhatsApp. Te confirmamos disponibilidad y coordinamos pago + envío.' },
+      { q: '¿Cuáles son los métodos de pago?', a: 'Aceptamos transferencias bancarias (BCP, Interbank, BBVA), Yape, Plin y pago contra entrega en Lima Metropolitana.' },
+      { q: '¿Cuánto tiempo demora el envío?', a: 'En Lima Metropolitana: 1-2 días hábiles. En provincias: 3-5 días hábiles. Envío gratis en compras mayores a S/200.' },
+      { q: '¿Cómo sé qué talla elegir?', a: 'Cada producto tiene una guía de tallas. Si tienes dudas, escríbenos por WhatsApp con tus medidas y te ayudamos.' },
+      { q: '¿La ropa es realmente de algodón peruano?', a: 'Sí, todas nuestras prendas están confeccionadas con 100% algodón pima peruano.' },
+      { q: '¿Puedo hacer cambios o devoluciones?', a: 'Sí, tienes 7 días calendario desde la recepción para solicitar cambio o devolución.' },
+      { q: '¿Tienen tienda física?', a: 'Operamos exclusivamente online. Realizamos entregas personalizadas en Lima Metropolitana.' },
+    ];
+    document.addEventListener('DOMContentLoaded', () => {
+      const list = document.getElementById('faq-list');
+      list.innerHTML = FAQS.map((f, i) => `
+        <div style="border-bottom:1px solid var(--border);">
+          <button data-i="${i}" class="faq-tog" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:1.25rem 0;text-align:left;background:none;border:none;">
+            <span style="font-weight:500;font-size:1rem;padding-right:1rem;">${f.q}</span>
+            <span class="faq-icon">${window.PalcusIcons.chevronDown(18)}</span>
+          </button>
+          <p class="faq-ans" style="display:none;padding-bottom:1.25rem;color:var(--muted-foreground);font-size:0.875rem;line-height:1.6;margin:0;">${f.a}</p>
+        </div>`).join('');
+      list.querySelectorAll('.faq-tog').forEach(btn => btn.onclick = () => {
+        const ans = btn.nextElementSibling;
+        const open = ans.style.display === 'block';
+        ans.style.display = open ? 'none' : 'block';
+        btn.querySelector('.faq-icon').style.transform = open ? 'rotate(0)' : 'rotate(180deg)';
+      });
+    });
+  </script>
+</body>
+</html>

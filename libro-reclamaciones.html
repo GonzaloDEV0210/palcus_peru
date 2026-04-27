@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Libro de Reclamaciones — PalCus Perú</title>
+  <meta name="description" content="Libro de Reclamaciones virtual de PalCus Perú." />
+  <link rel="icon" href="assets/logo_palcus.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="section-padding">
+    <div style="max-width:36rem;margin:0 auto;" id="form-host">
+      <div style="text-align:center;margin-bottom:3rem;">
+        <p class="font-heading" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4em;color:var(--muted-foreground);margin-bottom:0.5rem;">📋 Virtual</p>
+        <h1 class="font-heading" style="font-size:clamp(2.25rem,5vw,3rem);font-weight:800;margin:0;">Libro de Reclamaciones</h1>
+        <p style="color:var(--muted-foreground);margin-top:0.75rem;font-size:0.875rem;">Conforme al Código de Protección y Defensa del Consumidor</p>
+      </div>
+      <form id="claim-form" style="display:flex;flex-direction:column;gap:1.5rem;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
+          <div><label style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;display:block;margin-bottom:0.5rem;">Nombres</label><input type="text" required style="width:100%;border:1px solid var(--border);padding:0.75rem 1rem;font-size:0.875rem;background:transparent;outline:none;"></div>
+          <div><label style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;display:block;margin-bottom:0.5rem;">Apellidos</label><input type="text" required style="width:100%;border:1px solid var(--border);padding:0.75rem 1rem;font-size:0.875rem;background:transparent;outline:none;"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
+          <div><label style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;display:block;margin-bottom:0.5rem;">DNI / CE</label><input type="text" required style="width:100%;border:1px solid var(--border);padding:0.75rem 1rem;font-size:0.875rem;background:transparent;outline:none;"></div>
+          <div><label style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;display:block;margin-bottom:0.5rem;">Teléfono</label><input type="tel" required style="width:100%;border:1px solid var(--border);padding:0.75rem 1rem;font-size:0.875rem;background:transparent;outline:none;"></div>
+        </div>
+        <div><label style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;display:block;margin-bottom:0.5rem;">Correo electrónico</label><input type="email" required style="width:100%;border:1px solid var(--border);padding:0.75rem 1rem;font-size:0.875rem;background:transparent;outline:none;"></div>
+        <div><label style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;display:block;margin-bottom:0.5rem;">Tipo</label><select required style="width:100%;border:1px solid var(--border);padding:0.75rem 1rem;font-size:0.875rem;background:transparent;outline:none;"><option value="">Seleccionar</option><option>Reclamo</option><option>Queja</option></select></div>
+        <div><label style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;display:block;margin-bottom:0.5rem;">Detalle del reclamo o queja</label><textarea required rows="5" style="width:100%;border:1px solid var(--border);padding:0.75rem 1rem;font-size:0.875rem;background:transparent;outline:none;resize:none;font-family:inherit;"></textarea></div>
+        <button type="submit" class="btn-primary" style="width:100%;">Enviar reclamo</button>
+      </form>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <div id="site-floating"></div>
+  <script src="js/products.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    document.getElementById('claim-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      document.getElementById('form-host').innerHTML = `
+        <div style="text-align:center;">
+          <h1 class="font-heading" style="font-size:2.25rem;font-weight:800;margin-bottom:1rem;">¡Recibido!</h1>
+          <p style="color:var(--muted-foreground);">Tu reclamo ha sido registrado exitosamente. Nos comunicaremos contigo en un plazo máximo de 30 días calendario.</p>
+        </div>`;
+    });
+  </script>
+</body>
+</html>

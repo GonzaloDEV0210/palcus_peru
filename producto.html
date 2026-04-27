@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Producto — PalCus Perú</title>
+  <meta name="description" content="Producto de PalCus Perú confeccionado con 100% algodón peruano." />
+  <link rel="icon" href="assets/logo_palcus.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main id="product-detail"></main>
+  <div id="site-footer"></div>
+  <div id="site-floating"></div>
+  <script src="js/products.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => window.PalcusRender.renderProductDetail());
+  </script>
+</body>
+</html>
