@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catálogo de Polos para Mujer — PalCus Perú</title>
+  <meta name="description" content="Exclusivos polos para mujeres con 100% algodón peruano. Elegancia casual y comodidad." />
+  <meta property="og:title" content="Catálogo de Polos para Mujer — PalCus Perú" />
+  <meta property="og:description" content="Exclusivos polos para mujeres con 100% algodón peruano." />
+  <link rel="icon" href="assets/icon_logo_white.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="global-preloader">
+    <img src="assets/icon_logo.png" alt="PalCus Perú" class="preloader-img">
+  </div>
+  <div id="site-header"></div>
+  <main class="section-padding">
+    <div style="max-width:80rem;margin:0 auto;">
+      <div style="text-align:center;margin-bottom:3rem;">
+        <p class="font-heading" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.4em;color:var(--muted-foreground);margin-bottom:0.5rem;">Catálogo Exclusivo</p>
+        <h1 class="font-heading" style="font-size:clamp(2.25rem,5vw,3rem);font-weight:800;margin:0;">Polos para Mujer</h1>
+        <p style="color:var(--muted-foreground);margin-top:0.75rem;font-size:0.875rem;">Elegancia casual y máxima comodidad con algodón peruano premium</p>
+      </div>
+      <div id="cat-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;"></div>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <div id="site-floating"></div>
+  <script src="js/products.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Fetch URL params to filter by category if present
+      const urlParams = new URLSearchParams(window.location.search);
+      const catParam = urlParams.get('categoria');
+      
+      let productsToRender = window.PALCUS_PRODUCTS;
+      if (catParam) {
+        productsToRender = window.PalcusUtil.byCategory(catParam);
+        // Also update title
+        const titles = { basicos: 'Básicos', oversize: 'Oversize', estampados: 'Estampados', deportivos: 'Deportivos' };
+        if (titles[catParam]) {
+          document.querySelector('h1').innerText = 'Polos ' + titles[catParam];
+        }
+      }
+      
+      window.PalcusRender.renderGrid('cat-grid', productsToRender);
+    });
+  </script>
+</body>
+</html>

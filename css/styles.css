@@ -329,3 +329,28 @@ button { font-family: inherit; cursor: pointer; }
 
 /* Logo invert (footer) */
 .invert { filter: invert(1); }
+
+/* Preloader */
+#global-preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+}
+#global-preloader.fade-out {
+  opacity: 0;
+  visibility: hidden;
+}
+.preloader-img {
+  width: 100px;
+  height: auto;
+  animation: pulse-elegant 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes pulse-elegant {
+  0%, 100% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+}

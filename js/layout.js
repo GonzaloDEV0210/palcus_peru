@@ -6,10 +6,10 @@
 
   const navLinks = [
     { href: 'index.html', label: 'Inicio' },
-    { href: 'mujeres.html', label: 'Mujeres', category: 'mujeres' },
-    { href: 'varones.html', label: 'Varones', category: 'varones' },
-    { href: 'ninos.html', label: 'Niños', category: 'ninos' },
-    { href: 'ninas.html', label: 'Niñas', category: 'ninas' },
+    { href: 'catalogo.html', label: 'Básicos', category: 'basicos' },
+    { href: 'catalogo.html', label: 'Oversize', category: 'oversize' },
+    { href: 'catalogo.html', label: 'Estampados', category: 'estampados' },
+    { href: 'catalogo.html', label: 'Deportivos', category: 'deportivos' },
   ];
 
   const currentPage = (location.pathname.split('/').pop() || 'index.html');
@@ -80,15 +80,15 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2.5rem;">
           <div>
             <img src="assets/logo_palcus.png" alt="PalCus Perú" class="invert" style="height:3.5rem;width:auto;margin-bottom:1rem;">
-            <p style="font-size:0.875rem;opacity:0.7;line-height:1.6;">Moda casual con 100% algodón peruano. Calidad, confort y estilo para toda la familia.</p>
+            <p style="font-size:0.875rem;opacity:0.7;line-height:1.6;">Moda casual exclusiva para mujer con 100% algodón peruano. Calidad, confort y estilo en cada prenda.</p>
           </div>
           <div>
             <h4 style="font-family:'Syne',sans-serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.2em;font-weight:600;margin-bottom:1rem;">Categorías</h4>
             <ul style="list-style:none;padding:0;margin:0;font-size:0.875rem;opacity:0.7;display:flex;flex-direction:column;gap:0.5rem;">
-              <li><a href="mujeres.html">Mujeres</a></li>
-              <li><a href="varones.html">Varones</a></li>
-              <li><a href="ninos.html">Niños</a></li>
-              <li><a href="ninas.html">Niñas</a></li>
+              <li><a href="catalogo.html">Básicos</a></li>
+              <li><a href="catalogo.html">Oversize</a></li>
+              <li><a href="catalogo.html">Estampados</a></li>
+              <li><a href="catalogo.html">Deportivos</a></li>
             </ul>
           </div>
           <div>
@@ -331,6 +331,14 @@
     });
 
     window.PalcusCart.update();
+
+    setTimeout(() => {
+      const p = document.getElementById('global-preloader');
+      if(p) {
+        p.classList.add('fade-out');
+        setTimeout(() => p.remove(), 500);
+      }
+    }, 1300);
   }
 
   window.PalcusLayout = { renderCart, openCart, closeCart };
