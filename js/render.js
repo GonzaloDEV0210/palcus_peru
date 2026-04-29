@@ -41,9 +41,21 @@
       return;
     }
     document.title = `${p.name} — PalCus Perú`;
-    let selectedSize = null, selectedColor = null, qty = 1;
+    let selectedSize = null, selectedColor = null, selectedDesign = null, qty = 1;
 
     function update() {
+      const validDesigns = selectedColor ? Object.keys(p.imageMap[selectedColor] || {}) : p.designs;
+      if (selectedColor && selectedDesign && !validDesigns.includes(selectedDesign)) {
+        selectedDesign = validDesigns.length > 0 ? validDesigns[0] : null;
+      }
+      
+      let currentImage = p.image;
+      if (selectedColor && selectedDesign && p.imageMap[selectedColor] && p.imageMap[selectedColor][selectedDesign]) {
+        currentImage = p.imageMap[selectedColor][selectedDesign];
+      } else if (selectedColor && validDesigns.length > 0) {
+        currentImage = p.imageMap[selectedColor][validDesigns[0]];
+      }
+
       host.innerHTML = `
         <div class="section-padding">
           <div style="max-width:72rem;margin:0 auto;">
@@ -52,7 +64,7 @@
             </nav>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:3rem;">
               <div style="background:var(--accent);aspect-ratio:3/4;overflow:hidden;">
-                <img src="${U.imageUrl(p.image)}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;">
+                <img src="${U.imageUrl(currentImage)}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async">
               </div>
               <div style="display:flex;flex-direction:column;justify-content:center;">
                 ${p.tag ? `<span style="font-size:0.625rem;text-transform:uppercase;letter-spacing:0.2em;font-family:'Syne',sans-serif;font-weight:600;color:var(--muted-foreground);margin-bottom:0.5rem;">${p.tag}</span>` : ''}
@@ -67,7 +79,7 @@
                   <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
                     ${p.colors.map(c => `
                       <button class="pick-color" data-color="${c.name}" title="${c.name}" style="position:relative;width:2.5rem;height:2.5rem;border-radius:9999px;border:none;background:${c.hex};cursor:pointer;transition:all 0.2s;${selectedColor===c.name?'outline:2px solid var(--foreground);outline-offset:2px;transform:scale(1.1);':''}">
-                        ${selectedColor===c.name?`<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:${['#f5f5f5','#d4b896','#e8b4b8','#b19cd9'].includes(c.hex)?'#1a1a1a':'#fff'};">${window.PalcusIcons.check(16)}</span>`:''}
+                        ${selectedColor===c.name?`<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:${['#f5f5f5','#d4b896','#e8b4b8','#b19cd9','#ffffff','#eab308'].includes(c.hex)?'#1a1a1a':'#fff'};">${window.PalcusIcons.check(16)}</span>`:''}
                       </button>`).join('')}
                   </div>
                 </div>
@@ -77,6 +89,13 @@
                     ${p.sizes.map(s => `<button class="pick-size" data-size="${s}" style="width:3rem;height:3rem;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:500;border:1px solid ${selectedSize===s?'var(--primary)':'var(--border)'};background:${selectedSize===s?'var(--primary)':'transparent'};color:${selectedSize===s?'var(--primary-foreground)':'var(--foreground)'};cursor:pointer;">${s}</button>`).join('')}
                   </div>
                 </div>
+                ${validDesigns && validDesigns.length > 0 ? `
+                <div style="margin-top:2rem;">
+                  <p style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.15em;font-family:'Syne',sans-serif;font-weight:600;margin-bottom:0.75rem;">Diseño (Pecho)${selectedDesign ? `: ${selectedDesign}` : ''}</p>
+                  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                    ${validDesigns.map(d => `<button class="pick-design" data-design="${d}" style="padding:0.5rem 1rem;font-size:0.75rem;font-weight:500;border:1px solid ${selectedDesign===d?'var(--primary)':'var(--border)'};background:${selectedDesign===d?'var(--primary)':'transparent'};color:${selectedDesign===d?'var(--primary-foreground)':'var(--foreground)'};cursor:pointer;border-radius:0.25rem;">${d}</button>`).join('')}
+                  </div>
+                </div>` : ''}
                 <div style="margin-top:2rem;">
                   <p style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.15em;font-family:'Syne',sans-serif;font-weight:600;margin-bottom:0.75rem;">Cantidad</p>
                   <div style="display:flex;align-items:center;gap:0.75rem;width:fit-content;border:1px solid var(--border);">
@@ -85,7 +104,10 @@
                     <button id="qi" style="width:2.5rem;height:2.5rem;background:none;border:none;display:flex;align-items:center;justify-content:center;">${window.PalcusIcons.plus(14)}</button>
                   </div>
                 </div>
-                <button id="addCart" class="btn-primary" style="margin-top:2rem;${(!selectedSize||!selectedColor)?'opacity:0.4;cursor:not-allowed;':''}" ${(!selectedSize||!selectedColor)?'disabled':''}>Agregar al carrito</button>
+                ${(() => {
+                  const missing = !selectedSize || !selectedColor || (validDesigns.length > 0 && !selectedDesign);
+                  return `<button id="addCart" class="btn-primary" style="margin-top:2rem;${missing?'opacity:0.4;cursor:not-allowed;':''}" ${missing?'disabled':''}>Agregar al carrito</button>`;
+                })()}
                 <a href="https://wa.me/${window.PalcusCart.PHONE}?text=${encodeURIComponent(`Hola PalCus Perú! Me interesa: ${p.name} - S/${p.price.toFixed(2)}`)}" target="_blank" rel="noopener" class="btn-outline" style="margin-top:1rem;">Consultar por WhatsApp</a>
               </div>
             </div>
@@ -93,11 +115,13 @@
         </div>`;
       host.querySelectorAll('.pick-color').forEach(b => b.onclick = () => { selectedColor = b.dataset.color; update(); });
       host.querySelectorAll('.pick-size').forEach(b => b.onclick = () => { selectedSize = b.dataset.size; update(); });
+      host.querySelectorAll('.pick-design').forEach(b => b.onclick = () => { selectedDesign = b.dataset.design; update(); });
       host.querySelector('#qd').onclick = () => { qty = Math.max(1, qty - 1); update(); };
       host.querySelector('#qi').onclick = () => { qty = qty + 1; update(); };
       const addBtn = host.querySelector('#addCart');
       if (addBtn && !addBtn.disabled) addBtn.onclick = () => {
-        window.PalcusCart.add(p, selectedSize, selectedColor, qty);
+        const productForCart = { ...p, image: currentImage };
+        window.PalcusCart.add(productForCart, selectedSize, selectedColor, selectedDesign, qty);
         addBtn.innerHTML = `${window.PalcusIcons.check(16)} Agregado`;
         setTimeout(() => window.PalcusLayout.openCart(), 500);
       };

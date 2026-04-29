@@ -2,14 +2,13 @@
 (function () {
   const I = window.PalcusIcons;
   const U = window.PalcusUtil;
-  const PHONE = '51999999999';
+  const PHONE = '51981293422';
 
   const navLinks = [
     { href: 'index.html', label: 'Inicio' },
-    { href: 'catalogo.html', label: 'Básicos', category: 'basicos' },
-    { href: 'catalogo.html', label: 'Oversize', category: 'oversize' },
-    { href: 'catalogo.html', label: 'Estampados', category: 'estampados' },
-    { href: 'catalogo.html', label: 'Deportivos', category: 'deportivos' },
+    { href: 'catalogo.html?categoria=manga-corta', label: 'Manga Corta', category: 'manga-corta' },
+    { href: 'catalogo.html?categoria=manga-cero', label: 'Manga Cero', category: 'manga-cero' },
+    { href: 'catalogo.html?categoria=cuello-canoa', label: 'Cuello Canoa', category: 'cuello-canoa' },
   ];
 
   const currentPage = (location.pathname.split('/').pop() || 'index.html');
@@ -83,12 +82,11 @@
             <p style="font-size:0.875rem;opacity:0.7;line-height:1.6;">Moda casual exclusiva para mujer con 100% algodón peruano. Calidad, confort y estilo en cada prenda.</p>
           </div>
           <div>
-            <h4 style="font-family:'Syne',sans-serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.2em;font-weight:600;margin-bottom:1rem;">Categorías</h4>
+            <h4 style="font-family:'Syne',sans-serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.2em;font-weight:600;margin-bottom:1rem;">Colección</h4>
             <ul style="list-style:none;padding:0;margin:0;font-size:0.875rem;opacity:0.7;display:flex;flex-direction:column;gap:0.5rem;">
-              <li><a href="catalogo.html">Básicos</a></li>
-              <li><a href="catalogo.html">Oversize</a></li>
-              <li><a href="catalogo.html">Estampados</a></li>
-              <li><a href="catalogo.html">Deportivos</a></li>
+              <li><a href="catalogo.html?categoria=manga-corta">Polo Manga Corta</a></li>
+              <li><a href="catalogo.html?categoria=manga-cero">Polo Manga Cero</a></li>
+              <li><a href="catalogo.html?categoria=cuello-canoa">Polo Cuello Canoa</a></li>
             </ul>
           </div>
           <div>
@@ -155,13 +153,13 @@
         <img src="${U.imageUrl(it.image)}" alt="${it.name}" style="width:5rem;height:6rem;object-fit:cover;">
         <div style="flex:1;">
           <h3 style="font-size:0.875rem;font-weight:500;margin:0;">${it.name}</h3>
-          <p style="font-size:0.75rem;color:var(--muted-foreground);margin:0.125rem 0 0;">Talla: ${it.size} · Color: ${it.color}</p>
+          <p style="font-size:0.75rem;color:var(--muted-foreground);margin:0.125rem 0 0;">Talla: ${it.size} · Color: ${it.color}${it.design ? ` · Diseño: ${it.design}` : ''}</p>
           <p style="font-size:0.875rem;font-weight:600;margin:0.25rem 0 0;">S/${it.price.toFixed(2)}</p>
           <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;">
-            <button class="qty-dec" data-id="${it.id}" data-size="${it.size}" data-color="${it.color}" data-q="${it.quantity-1}" style="width:1.5rem;height:1.5rem;border:1px solid var(--border);background:var(--background);display:flex;align-items:center;justify-content:center;">${I.minus()}</button>
+            <button class="qty-dec" data-id="${it.id}" data-size="${it.size}" data-color="${it.color}" data-design="${it.design || ''}" data-q="${it.quantity-1}" style="width:1.5rem;height:1.5rem;border:1px solid var(--border);background:var(--background);display:flex;align-items:center;justify-content:center;">${I.minus()}</button>
             <span style="font-size:0.75rem;width:1.5rem;text-align:center;">${it.quantity}</span>
-            <button class="qty-inc" data-id="${it.id}" data-size="${it.size}" data-color="${it.color}" data-q="${it.quantity+1}" style="width:1.5rem;height:1.5rem;border:1px solid var(--border);background:var(--background);display:flex;align-items:center;justify-content:center;">${I.plus()}</button>
-            <button class="qty-rm" data-id="${it.id}" data-size="${it.size}" data-color="${it.color}" style="margin-left:auto;background:none;border:none;color:var(--muted-foreground);">${I.trash()}</button>
+            <button class="qty-inc" data-id="${it.id}" data-size="${it.size}" data-color="${it.color}" data-design="${it.design || ''}" data-q="${it.quantity+1}" style="width:1.5rem;height:1.5rem;border:1px solid var(--border);background:var(--background);display:flex;align-items:center;justify-content:center;">${I.plus()}</button>
+            <button class="qty-rm" data-id="${it.id}" data-size="${it.size}" data-color="${it.color}" data-design="${it.design || ''}" style="margin-left:auto;background:none;border:none;color:var(--muted-foreground);">${I.trash()}</button>
           </div>
         </div>
       </div>`).join('');
@@ -197,11 +195,11 @@
     document.getElementById('drawerOverlay').onclick = closeCart;
     document.getElementById('closeCart').onclick = closeCart;
     host.querySelectorAll('.qty-dec,.qty-inc').forEach(b => b.onclick = () => {
-      window.PalcusCart.setQty(b.dataset.id, b.dataset.size, b.dataset.color, parseInt(b.dataset.q));
+      window.PalcusCart.setQty(b.dataset.id, b.dataset.size, b.dataset.color, b.dataset.design, parseInt(b.dataset.q));
       renderCart();
     });
     host.querySelectorAll('.qty-rm').forEach(b => b.onclick = () => {
-      window.PalcusCart.remove(b.dataset.id, b.dataset.size, b.dataset.color);
+      window.PalcusCart.remove(b.dataset.id, b.dataset.size, b.dataset.color, b.dataset.design);
       renderCart();
     });
     const clr = document.getElementById('clearCartBtn');
