@@ -109,15 +109,27 @@
 
   <style>.cat-tile:hover img{transform:scale(1.1);}</style>
 
+  <script type="module" src="js/db.js"></script>
   <script src="js/products.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/cart.js"></script>
   <script src="js/render.js"></script>
   <script src="js/layout.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      window.PalcusRender.renderGrid('featured-grid', window.PALCUS_PRODUCTS.filter(p => p.tag));
-      window.PalcusRender.renderGrid('newest-grid', window.PALCUS_PRODUCTS.slice(0, 4));
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Esperar a que Firebase esté listo e inicializar datos
+      const checkDb = setInterval(async () => {
+        if (window.PalcusDb) {
+          clearInterval(checkDb);
+          await window.PalcusUtil.init();
+        }
+      }, 100);
+
+      // Renderizar cuando los datos estén listos
+      window.addEventListener('palcus-data-ready', () => {
+        window.PalcusRender.renderGrid('featured-grid', window.PalcusUtil.getBestSellers(4));
+        window.PalcusRender.renderGrid('newest-grid', window.PalcusUtil.getNewest(4));
+      });
     });
   </script>
 </body>

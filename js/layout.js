@@ -4,12 +4,20 @@
   const U = window.PalcusUtil;
   const PHONE = '51981293422';
 
-  const navLinks = [
+  let navLinks = [
     { href: 'index.html', label: 'Inicio' },
-    { href: 'catalogo.html?categoria=manga-corta', label: 'Manga Corta', category: 'manga-corta' },
-    { href: 'catalogo.html?categoria=manga-cero', label: 'Manga Cero', category: 'manga-cero' },
-    { href: 'catalogo.html?categoria=cuello-canoa', label: 'Cuello Canoa', category: 'cuello-canoa' },
   ];
+
+  function updateNavLinks() {
+    navLinks = [
+      { href: 'index.html', label: 'Inicio' },
+      ...Object.entries(window.PALCUS_CATEGORY_LABELS).map(([slug, name]) => ({
+        href: `catalogo.html?categoria=${slug}`,
+        label: name,
+        category: slug
+      }))
+    ];
+  }
 
   const currentPage = (location.pathname.split('/').pop() || 'index.html');
 
@@ -84,9 +92,9 @@
           <div>
             <h4 style="font-family:'Syne',sans-serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.2em;font-weight:600;margin-bottom:1rem;">Colección</h4>
             <ul style="list-style:none;padding:0;margin:0;font-size:0.875rem;opacity:0.7;display:flex;flex-direction:column;gap:0.5rem;">
-              <li><a href="catalogo.html?categoria=manga-corta">Polo Manga Corta</a></li>
-              <li><a href="catalogo.html?categoria=manga-cero">Polo Manga Cero</a></li>
-              <li><a href="catalogo.html?categoria=cuello-canoa">Polo Cuello Canoa</a></li>
+              ${Object.entries(window.PALCUS_CATEGORY_LABELS).map(([slug, name]) => `
+                <li><a href="catalogo.html?categoria=${slug}">Polo ${name}</a></li>
+              `).join('')}
             </ul>
           </div>
           <div>
@@ -340,6 +348,22 @@
   }
 
   window.PalcusLayout = { renderCart, openCart, closeCart };
+  
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
+
+  // Re-renderizar cuando los datos de Firebase lleguen
+  window.addEventListener('palcus-data-ready', () => {
+    updateNavLinks();
+    const headerHost = document.getElementById('site-header');
+    const footerHost = document.getElementById('site-footer');
+    if (headerHost) headerHost.innerHTML = buildHeader();
+    if (footerHost) footerHost.innerHTML = buildFooter();
+    
+    // Volver a asignar eventos del menú móvil
+    document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+      const m = document.getElementById('mobileMenu');
+      m.style.display = m.style.display === 'block' ? 'none' : 'block';
+    });
+  });
 })();

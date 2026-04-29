@@ -28,6 +28,7 @@
   </main>
   <div id="site-footer"></div>
   <div id="site-floating"></div>
+  <script type="module" src="js/db.js"></script>
   <script src="js/products.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/cart.js"></script>
@@ -35,21 +36,28 @@
   <script src="js/layout.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Fetch URL params to filter by category if present
-      const urlParams = new URLSearchParams(window.location.search);
-      const catParam = urlParams.get('categoria');
-      
-      let productsToRender = window.PALCUS_PRODUCTS;
-      if (catParam) {
-        productsToRender = window.PalcusUtil.byCategory(catParam);
-        // Also update title
-        const titles = { basicos: 'Básicos', oversize: 'Oversize', estampados: 'Estampados', deportivos: 'Deportivos' };
-        if (titles[catParam]) {
-          document.querySelector('h1').innerText = 'Polos ' + titles[catParam];
+      const checkDb = setInterval(async () => {
+        if (window.PalcusDb) {
+          clearInterval(checkDb);
+          await window.PalcusUtil.init();
         }
-      }
-      
-      window.PalcusRender.renderGrid('cat-grid', productsToRender);
+      }, 100);
+
+      window.addEventListener('palcus-data-ready', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const catParam = urlParams.get('categoria');
+        
+        let productsToRender = window.PALCUS_PRODUCTS;
+        if (catParam) {
+          productsToRender = window.PalcusUtil.byCategory(catParam);
+          const label = window.PALCUS_CATEGORY_LABELS[catParam];
+          if (label) {
+            document.querySelector('h1').innerText = 'Polo ' + label;
+          }
+        }
+        
+        window.PalcusRender.renderGrid('cat-grid', productsToRender);
+      });
     });
   </script>
 </body>
