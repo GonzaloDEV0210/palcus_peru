@@ -62,6 +62,40 @@
     const text = `¡Hola PalCus Perú! 🛒 Quiero hacer un pedido:\n\n📋 Código de compra: ${code}\n\n${lines}\n\nTotal: S/${totalPrice().toFixed(2)}`;
     return `https://wa.me/${PHONE}?text=${encodeURIComponent(text)}`;
   }
+ 
+  async function checkout() {
+    const items = read();
+    if (items.length === 0) return;
+
+    // Mostrar estado de carga si fuera necesario, por ahora directo
+    const { db, doc, updateDoc, increment } = window.PalcusDb;
+    
+    try {
+      // 1. Descontar stock para cada producto
+      for (const item of items) {
+        const productRef = doc(db, "products", item.id);
+        await updateDoc(productRef, {
+          stock: increment(-item.quantity),
+          salesCount: increment(item.quantity)
+        });
+      }
+
+      // 2. Abrir WhatsApp
+      const url = whatsappUrl();
+      window.open(url, '_blank');
+      
+      // 3. Limpiar carrito después de un momento
+      setTimeout(() => {
+        clear();
+        update();
+        if (window.PalcusLayout) window.PalcusLayout.closeCart();
+      }, 1000);
+
+    } catch (error) {
+      console.error("Error en checkout:", error);
+      alert("Hubo un problema al procesar tu pedido. Por favor intenta de nuevo.");
+    }
+  }
 
   function update() {
     const badge = document.querySelector('[data-cart-count]');
@@ -75,7 +109,7 @@
 
   window.PalcusCart = {
     read, add, remove, setQty, clear,
-    totalItems, totalPrice, whatsappUrl,
+    totalItems, totalPrice, whatsappUrl, checkout,
     getOrderCode, refreshOrderCode,
     update, PHONE,
   };

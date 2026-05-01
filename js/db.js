@@ -1,6 +1,6 @@
 // Configuración de Firebase - PalCus Perú
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, limit, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -31,9 +31,12 @@ window.PalcusDb = {
   query,
   orderBy,
   limit,
+  increment,
   signIn: signInWithEmailAndPassword,
   onAuth: onAuthStateChanged,
   logout: signOut
 };
 
 console.log("Firebase conectado correctamente");
+
+export { app, db, auth };

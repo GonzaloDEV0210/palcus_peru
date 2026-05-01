@@ -36,11 +36,22 @@ window.PalcusUtil = {
     }
   },
 
-  byCategory: (cat) => window.PALCUS_PRODUCTS.filter(p => p.category === cat),
+  byCategory: (cat) => {
+    const s = (cat || "").toLowerCase();
+    return window.PALCUS_PRODUCTS.filter(p => (p.category || "").toLowerCase() === s);
+  },
   byId: (id) => window.PALCUS_PRODUCTS.find(p => p.id === id),
   
   // Obtener los más nuevos
-  getNewest: (limit = 3) => window.PALCUS_PRODUCTS.slice(0, limit),
+  // Obtener solo lo que tenga menos de 15 días
+  getNewest: (limit = 3) => {
+    const now = new Date();
+    return window.PALCUS_PRODUCTS.filter(p => {
+      const created = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt || now);
+      const diffDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+      return diffDays <= 15;
+    }).slice(0, limit);
+  },
   
   // Obtener los más vendidos (ordenados por salesCount)
   getBestSellers: (limit = 4) => [...window.PALCUS_PRODUCTS]
@@ -56,12 +67,21 @@ window.PalcusUtil = {
   },
 
   imageUrl: (key) => {
-    if (!key) return 'assets/placeholder.jpg';
+    if (!key || key === 'placeholder.jpg') return 'https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo.png';
     if (key.startsWith('http')) return key;
-    if (key.includes('.')) return `assets/${key}`;
-    return `assets/${key}.jpg`;
+    return `https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/${key}`;
   },
 
   typesByCategory: (cat) => [...new Set(window.PALCUS_PRODUCTS.filter(p => p.category === cat).map(p => p.type))],
+  
+  // Rastrear vista de producto
+  trackView: async (id) => {
+    const { db, doc, updateDoc, increment } = window.PalcusDb;
+    try {
+      await updateDoc(doc(db, "products", id), {
+        viewCount: increment(1)
+      });
+    } catch(e) { console.error("Error tracking view", e); }
+  }
 };
 

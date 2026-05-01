@@ -302,14 +302,17 @@ button { font-family: inherit; cursor: pointer; }
 .product-tag {
   position: absolute;
   top: 0.75rem; left: 0.75rem;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  font-size: 0.625rem;
+  background: #000;
+  color: #fff;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   font-family: 'Syne', sans-serif;
-  font-weight: 600;
-  padding: 0.25rem 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  z-index: 10;
+  pointer-events: none;
+  border-radius: 2px;
 }
 
 /* Animations */

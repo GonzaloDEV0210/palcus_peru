@@ -11,7 +11,12 @@
         :root { --font-heading: 'Syne', sans-serif; }
         body { font-family: 'Inter', sans-serif; background: #f9f9f9; color: #1a1a1a; }
         .font-heading { font-family: var(--font-heading); }
-        .sidebar-link.active { background: #000; color: #fff; }
+        .nav-link.active { background: #000; color: #fff; }
+        @media (max-width: 1023px) {
+            .nav-link.active { background: transparent; color: #000; }
+            .nav-link.active span:last-child { border-bottom: 2px solid #000; }
+            .mobile-visible { opacity: 1 !important; }
+        }
         .card { background: #fff; border-radius: 16px; border: 1px solid #eee; }
     </style>
 </head>
@@ -19,12 +24,12 @@
     <div class="flex min-h-screen">
         <!-- Sidebar -->
         <aside class="w-64 bg-white border-r border-gray-200 p-6 flex flex-col hidden lg:flex">
-            <img src="../assets/logo_palcus.png" alt="PalCus" class="h-10 w-auto mb-10">
+            <img src="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/logo_palcus.png" alt="PalCus" class="h-10 w-auto mb-10">
             <nav class="space-y-2 flex-1">
-                <button onclick="switchTab('products', this)" class="sidebar-link active w-full flex align-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold">
+                <button onclick="switchTab('products', this)" class="nav-link active w-full flex align-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold">
                     <span>📦 Productos</span>
                 </button>
-                <button onclick="switchTab('categories', this)" class="sidebar-link w-full flex align-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold text-gray-500 hover:bg-gray-50">
+                <button onclick="switchTab('categories', this)" class="nav-link w-full flex align-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-semibold text-gray-500 hover:bg-gray-50">
                     <span>🏷️ Categorías</span>
                 </button>
             </nav>
@@ -34,7 +39,7 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 p-4 lg:p-10">
+        <main class="flex-1 p-4 lg:p-10 mb-20 lg:mb-0">
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
                 <div>
                     <h1 class="font-heading text-3xl font-bold uppercase tracking-tight">Gestión de Tienda</h1>
@@ -70,6 +75,22 @@
         </main>
     </div>
 
+    <!-- Mobile Navigation -->
+    <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-around items-center z-40">
+        <button onclick="switchTab('products', this)" class="nav-link active flex flex-col items-center gap-1">
+            <span class="text-xl">📦</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest">Productos</span>
+        </button>
+        <button onclick="switchTab('categories', this)" class="nav-link flex flex-col items-center gap-1 text-gray-400">
+            <span class="text-xl">🏷️</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-inherit">Categorías</span>
+        </button>
+        <button id="logoutBtnMobile" class="flex flex-col items-center gap-1 text-red-500">
+            <span class="text-xl">🚪</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest">Salir</span>
+        </button>
+    </nav>
+
     <!-- Modal: Product -->
     <div id="productModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8">
@@ -88,6 +109,10 @@
                         <label class="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Precio (S/)</label>
                         <input type="number" step="0.01" id="prodPrice" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-black outline-none transition-all">
                     </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Stock Disponible</label>
+                        <input type="number" id="prodStock" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-black outline-none transition-all">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Categoría</label>
@@ -99,6 +124,65 @@
                     <label class="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Descripción</label>
                     <textarea id="prodDesc" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-black outline-none transition-all"></textarea>
                 </div>
+
+                <!-- Sección de Variantes Rediseñada -->
+                <div class="border-t border-b border-gray-100 py-8 my-4 space-y-8">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-4">Tallas Disponibles</label>
+                        <div class="flex flex-wrap gap-3" id="sizeSelector">
+                            <button type="button" onclick="toggleSize('S')" data-size="S" class="size-pill">S</button>
+                            <button type="button" onclick="toggleSize('M')" data-size="M" class="size-pill">M</button>
+                            <button type="button" onclick="toggleSize('L')" data-size="L" class="size-pill">L</button>
+                            <button type="button" onclick="toggleSize('XL')" data-size="XL" class="size-pill">XL</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-4">Colores del Producto</label>
+                        
+                        <!-- Colores seleccionados actualmente -->
+                        <div id="selectedColorList" class="flex flex-wrap gap-3 mb-6 min-h-[50px] p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <!-- Tags de colores aparecerán aquí -->
+                        </div>
+
+                        <!-- Paleta de colores rápidos -->
+                        <div class="space-y-4">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Selección Rápida</p>
+                            <div class="flex flex-wrap gap-3">
+                                <button type="button" onclick="quickAddColor('Negro', '#1a1a1a')" class="quick-color" style="background:#1a1a1a" title="Negro"></button>
+                                <button type="button" onclick="quickAddColor('Blanco', '#ffffff')" class="quick-color" style="background:#ffffff; border:1px solid #ddd" title="Blanco"></button>
+                                <button type="button" onclick="quickAddColor('Beige', '#d4b896')" class="quick-color" style="background:#d4b896" title="Beige"></button>
+                                <button type="button" onclick="quickAddColor('Palo Rosa', '#e8b4b8')" class="quick-color" style="background:#e8b4b8" title="Palo Rosa"></button>
+                                <button type="button" onclick="quickAddColor('Lila', '#b19cd9')" class="quick-color" style="background:#b19cd9" title="Lila"></button>
+                                <button type="button" onclick="quickAddColor('Mostaza', '#eab308')" class="quick-color" style="background:#eab308" title="Mostaza"></button>
+                            </div>
+
+                            <div class="pt-4">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">O color personalizado</p>
+                                <div class="flex gap-3 items-center bg-white p-2 rounded-xl border border-gray-200">
+                                    <input type="color" id="colorPicker" class="w-10 h-10 rounded-lg cursor-pointer border-none p-0 bg-transparent">
+                                    <input type="text" id="colorHex" placeholder="#HEX" class="w-20 bg-transparent text-xs font-mono border-none outline-none uppercase">
+                                    <input type="text" id="colorName" placeholder="Nombre del color" class="flex-1 bg-transparent text-xs border-none outline-none">
+                                    <button type="button" onclick="addColor()" class="bg-black text-white text-[10px] font-bold px-4 py-2 rounded-lg uppercase tracking-widest">Añadir</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <style>
+                    .size-pill { width: 50px; height: 50px; border: 1px solid #e5e7eb; border-radius: 12px; font-size: 14px; font-weight: 700; color: #6b7280; background: white; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+                    .size-pill.active { background: #000; color: #fff; border-color: #000; transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+                    .size-pill:hover:not(.active) { border-color: #000; color: #000; }
+
+                    .quick-color { width: 32px; height: 32px; border-radius: 50%; transition: all 0.2s; cursor: pointer; position: relative; }
+                    .quick-color:hover { transform: scale(1.2); z-index: 10; }
+                    .quick-color:active { transform: scale(0.9); }
+
+                    .tag-color { display: flex; align-items: center; gap: 10px; background: white; padding: 6px 12px; border-radius: 12px; border: 1px solid #e5e7eb; font-size: 12px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+                    .tag-color span { width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); }
+                    .tag-color button { color: #ef4444; font-size: 18px; line-height: 1; border: none; background: none; cursor: pointer; padding: 0 4px; }
+                </style>
                 
                 <div class="border-t pt-6">
                     <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Fotos y Variantes</p>
@@ -126,6 +210,7 @@
         <div class="bg-white rounded-3xl w-full max-w-md p-8">
             <h2 class="font-heading text-xl font-bold uppercase mb-6">Añadir Categoría</h2>
             <form id="categoryForm" class="space-y-4">
+                <input type="hidden" id="editCatId">
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Nombre (Ej: Ropa Hombre)</label>
                     <input type="text" id="catName" required class="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none">

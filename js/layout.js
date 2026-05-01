@@ -30,7 +30,7 @@
         <div class="dropdown">
           <div class="dropdown-card">
             <p style="padding:0 1.25rem 0.5rem;font-size:0.625rem;text-transform:uppercase;letter-spacing:0.2em;color:var(--muted-foreground);font-family:'Syne',sans-serif;font-weight:600;">Categorías</p>
-            ${types.map(t => `<a href="${link.href}">${window.PALCUS_TYPE_LABELS[t]}</a>`).join('')}
+            ${types.filter(t => t && window.PALCUS_TYPE_LABELS[t]).map(t => `<a href="${link.href}">${window.PALCUS_TYPE_LABELS[t]}</a>`).join('')}
             <div style="border-top:1px solid var(--border);margin-top:0.5rem;padding:0.5rem 1.25rem 0;">
               <a href="${link.href}" style="font-size:0.625rem;text-transform:uppercase;letter-spacing:0.15em;font-weight:600;color:var(--foreground);padding:0;">Ver todo →</a>
             </div>
@@ -52,7 +52,7 @@
       <div style="max-width:80rem;margin:0 auto;padding:0 1rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;height:4rem;">
           <button id="mobileMenuBtn" style="background:none;border:none;padding:0.5rem;display:none;" aria-label="Menú" class="mobile-only">${I.menu()}</button>
-          <a href="index.html" style="flex-shrink:0;"><img src="assets/logo_palcus.png" alt="PalCus Perú" style="height:3rem;width:auto;"></a>
+          <a href="index.html" style="flex-shrink:0;"><img src="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/logo_palcus.png" alt="PalCus Perú" style="height:3rem;width:auto;"></a>
           <nav class="desktop-nav" style="display:flex;align-items:center;gap:2rem;">${navHTML}</nav>
           <div style="display:flex;align-items:center;gap:0.75rem;">
             <button id="searchBtn" style="background:none;border:none;padding:0.5rem;" aria-label="Buscar">${I.search()}</button>
@@ -86,7 +86,7 @@
       <div style="max-width:80rem;margin:0 auto;padding:4rem 1rem;">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2.5rem;">
           <div>
-            <img src="assets/logo_palcus.png" alt="PalCus Perú" class="invert" style="height:3.5rem;width:auto;margin-bottom:1rem;">
+            <img src="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/logo_palcus.png" alt="PalCus Perú" class="invert" style="height:3.5rem;width:auto;margin-bottom:1rem;">
             <p style="font-size:0.875rem;opacity:0.7;line-height:1.6;">Moda casual exclusiva para mujer con 100% algodón peruano. Calidad, confort y estilo en cada prenda.</p>
           </div>
           <div>
@@ -185,7 +185,7 @@
           <span style="font-family:'Syne',sans-serif;font-size:0.875rem;text-transform:uppercase;letter-spacing:0.1em;">Total</span>
           <span style="font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:bold;">S/${total.toFixed(2)}</span>
         </div>
-        <a href="${window.PalcusCart.whatsappUrl()}" target="_blank" rel="noopener" class="btn-primary" style="width:100%;">${I.whatsapp(16)} Pedir por WhatsApp</a>
+        <button onclick="this.disabled=true; this.innerText='Procesando...'; window.PalcusCart.checkout()" class="btn-primary" style="width:100%; border:none; cursor:pointer;">${I.whatsapp(16)} Pedir por WhatsApp</button>
         <button id="clearCartBtn" style="font-size:0.75rem;color:var(--muted-foreground);background:none;border:none;text-align:center;text-transform:uppercase;letter-spacing:0.1em;">Vaciar carrito</button>
       </div>`;
 
