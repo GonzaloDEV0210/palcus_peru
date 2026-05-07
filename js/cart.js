@@ -56,7 +56,12 @@
     const code = getOrderCode();
     const domain = window.location.origin;
     const lines = items.map(i => {
-      const imgUrl = i.image.startsWith('http') ? i.image : `${domain}/assets/${i.image}.jpg`;
+      let imgUrl = '';
+      if (window.PalcusUtil && window.PalcusUtil.imageUrl) {
+        imgUrl = window.PalcusUtil.imageUrl(i.image);
+      } else {
+        imgUrl = (i.image && typeof i.image === 'string' && i.image.startsWith('http')) ? i.image : `${domain}/assets/${i.image || 'placeholder'}.jpg`;
+      }
       return `• ${i.name} (Talla: ${i.size}, Color: ${i.color}, Diseño: ${i.design || 'Sin diseño'}) x${i.quantity} - S/${(i.price * i.quantity).toFixed(2)}\n  📷 Foto: ${imgUrl}`;
     }).join('\n\n');
     const text = `¡Hola PalCus Perú! 🛒 Quiero hacer un pedido:\n\n📋 Código de compra: ${code}\n\n${lines}\n\nTotal: S/${totalPrice().toFixed(2)}`;
@@ -66,34 +71,48 @@
   async function checkout() {
     const items = read();
     if (items.length === 0) return;
-
-    // Mostrar estado de carga si fuera necesario, por ahora directo
-    const { db, doc, updateDoc, increment } = window.PalcusDb;
     
     try {
-      // 1. Descontar stock para cada producto
-      for (const item of items) {
-        const productRef = doc(db, "products", item.id);
-        await updateDoc(productRef, {
-          stock: increment(-item.quantity),
-          salesCount: increment(item.quantity)
-        });
+      // 1. Registrar pedido en el sistema (MySQL) vía PHP API
+      // Usar ruta relativa al root del sitio
+      const response = await fetch('admin/api/registrar_pedido.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map(i => ({
+            nombre: i.name,
+            size: i.size,
+            color: i.color,
+            cantidad: i.quantity,
+            precio: i.price
+          })),
+          nombre: 'Cliente Web',
+          telefono: ''
+        })
+      });
+      
+      const res = await response.json();
+      if (!res.success) {
+        console.warn("No se pudo registrar el pedido en el admin:", res.error);
       }
 
-      // 2. Abrir WhatsApp
+      // 2. Abrir WhatsApp (Independientemente de si el registro falló, para no bloquear la compra)
       const url = whatsappUrl();
       window.open(url, '_blank');
       
-      // 3. Limpiar carrito después de un momento
+      // 3. Limpiar carrito
       setTimeout(() => {
         clear();
         update();
         if (window.PalcusLayout) window.PalcusLayout.closeCart();
-      }, 1000);
+      }, 500);
 
     } catch (error) {
       console.error("Error en checkout:", error);
-      alert("Hubo un problema al procesar tu pedido. Por favor intenta de nuevo.");
+      // Fallback: Si falla la API, igual abrir WhatsApp
+      window.open(whatsappUrl(), '_blank');
+      clear();
+      update();
     }
   }
 

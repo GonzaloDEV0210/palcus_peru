@@ -1,0 +1,11 @@
+# Deniega acceso directo a toda la carpeta admin
+Options -Indexes
+
+# Proteger archivos PHP de configuración
+<FilesMatch "\.(sql|json|log|env|sh)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Forzar UTF-8
+AddDefaultCharset UTF-8

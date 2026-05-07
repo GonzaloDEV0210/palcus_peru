@@ -8,29 +8,20 @@ window.PalcusDbReady = false;
 window.PalcusUtil = {
   // Carga inicial desde Firebase
   init: async () => {
-    const { db, collection, getDocs, query, orderBy } = window.PalcusDb;
-    
     try {
-      // 1. Cargar Categorías
-      const catSnap = await getDocs(collection(db, "categories"));
-      catSnap.forEach(doc => {
-        const data = doc.data();
-        window.PALCUS_CATEGORY_LABELS[data.slug] = data.name;
-      });
-
-      // 2. Cargar Productos
-      const prodQuery = query(collection(db, "products"), orderBy("createdAt", "desc"));
-      const prodSnap = await getDocs(prodQuery);
-      window.PALCUS_PRODUCTS = [];
-      prodSnap.forEach(doc => {
-        window.PALCUS_PRODUCTS.push({ id: doc.id, ...doc.data() });
-      });
-
-      window.PalcusDbReady = true;
-      console.log("Datos cargados desde Firestore:", window.PALCUS_PRODUCTS.length, "productos");
+      const resp = await fetch('admin/api/get_catalogo.php');
+      const res = await resp.json();
       
-      // Disparar evento para que la interfaz sepa que ya puede renderizar
-      window.dispatchEvent(new CustomEvent('palcus-data-ready'));
+      if (res.success) {
+        window.PALCUS_PRODUCTS = res.products;
+        window.PALCUS_CATEGORY_LABELS = res.categories;
+        
+        window.PalcusDbReady = true;
+        console.log("Datos cargados desde MySQL:", window.PALCUS_PRODUCTS.length, "productos");
+        window.dispatchEvent(new CustomEvent('palcus-data-ready'));
+      } else {
+        console.error("Error en API de catálogo:", res.error);
+      }
     } catch (error) {
       console.error("Error cargando datos:", error);
     }
