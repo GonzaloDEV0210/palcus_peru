@@ -112,7 +112,6 @@
     .product-card:hover .product-image { transform: scale(1.05); }
   </style>
 
-  <script type="module" src="js/db.js"></script>
   <script src="js/products.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/cart.js"></script>
@@ -120,19 +119,12 @@
   <script src="js/layout.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      // Esperar a que Firebase esté listo e inicializar datos
-      const checkDb = setInterval(async () => {
-        if (window.PalcusDb) {
-          clearInterval(checkDb);
-          await window.PalcusUtil.init();
-        }
-      }, 100);
-
+      // Inicializar datos directamente (ahora desde MySQL)
+      await window.PalcusUtil.init();
+      
       // Renderizar cuando los datos estén listos
-      window.addEventListener('palcus-data-ready', () => {
-        window.PalcusRender.renderGrid('featured-grid', window.PalcusUtil.getBestSellers(4));
-        window.PalcusRender.renderGrid('newest-grid', window.PalcusUtil.getNewest(4));
-      });
+      window.PalcusRender.renderGrid('featured-grid', window.PalcusUtil.getBestSellers(4));
+      window.PalcusRender.renderGrid('newest-grid', window.PalcusUtil.getNewest(4));
     });
   </script>
 </body>

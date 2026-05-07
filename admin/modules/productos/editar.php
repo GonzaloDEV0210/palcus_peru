@@ -138,11 +138,17 @@ $categorias = db()->fetchAll('SELECT id, nombre FROM categorias WHERE activo=1 O
             </div>
 
             <div class="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 class="font-semibold text-gray-900 mb-4">Imagen</h3>
-              <input name="imagen_url" type="url" class="form-input" value="<?= e($p['imagen_url'] ?? '') ?>" placeholder="https://..."/>
-              <?php if ($p['imagen_url']): ?>
-              <img src="<?= e($p['imagen_url']) ?>" class="mt-3 w-full h-36 object-cover rounded-xl border border-gray-200"/>
-              <?php endif; ?>
+              <h3 class="font-semibold text-gray-900 mb-4">Imagen del Producto</h3>
+              <div class="space-y-4">
+                <div id="imgPreview" class="<?= empty($p['imagen_url']) ? 'hidden' : '' ?> mb-3">
+                  <img id="imgPreviewEl" src="<?= e($p['imagen_url'] ?? '') ?>" alt="" class="w-full h-40 object-cover rounded-xl border border-gray-200"/>
+                </div>
+                <input type="hidden" name="imagen_url" id="imagen_url" value="<?= e($p['imagen_url'] ?? '') ?>"/>
+                <button type="button" id="upload_widget" class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-gray-900 hover:text-gray-900 transition-all">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span class="text-sm font-medium">Cambiar Imagen</span>
+                </button>
+              </div>
             </div>
 
             <div class="bg-white rounded-2xl border border-gray-200 p-5">
@@ -184,6 +190,31 @@ async function updateSku() {
     } catch (e) { console.error(e); }
 }
 catSelect.addEventListener('change', updateSku);
+
+// Cloudinary Widget
+const cloudName = "dv7nmkmpm";
+const uploadPreset = "palcus_preset";
+
+const myWidget = cloudinary.createUploadWidget({
+    cloudName: cloudName, 
+    uploadPreset: uploadPreset,
+    sources: ['local', 'url', 'camera'],
+    multiple: false,
+    clientAllowedFormats: ["png", "jpg", "jpeg", "webp"],
+    maxFileSize: 2000000, // 2MB
+    cropping: true,
+    croppingAspectRatio: 1,
+    showSkipCropButton: false
+}, (error, result) => { 
+    if (!error && result && result.event === "success") { 
+        const url = result.info.secure_url;
+        document.getElementById('imagen_url').value = url;
+        document.getElementById('imgPreviewEl').src = url;
+        document.getElementById('imgPreview').classList.remove('hidden');
+    }
+});
+
+document.getElementById("upload_widget").addEventListener("click", () => myWidget.open(), false);
 </script>
 </body>
 </html>

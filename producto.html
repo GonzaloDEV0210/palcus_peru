@@ -14,24 +14,16 @@
   <main id="product-detail"></main>
   <div id="site-footer"></div>
   <div id="site-floating"></div>
-  <script type="module" src="js/db.js"></script>
   <script src="js/products.js"></script>
   <script src="js/icons.js"></script>
   <script src="js/cart.js"></script>
   <script src="js/render.js"></script>
   <script src="js/layout.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const checkDb = setInterval(async () => {
-        if (window.PalcusDb) {
-          clearInterval(checkDb);
-          await window.PalcusUtil.init();
-        }
-      }, 100);
-
-      window.addEventListener('palcus-data-ready', () => {
-        window.PalcusRender.renderProductDetail();
-      });
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Inicializar datos directamente
+      await window.PalcusUtil.init();
+      window.PalcusRender.renderProductDetail();
     });
   </script>
 </body>

@@ -111,7 +111,7 @@ $recentVentas = db()->fetchAll(
             <?php foreach ($recentVentas as $v): ?>
             <div class="flex items-center justify-between border-b border-gray-50 pb-3 last:border-0 last:pb-0">
               <div>
-                <p class="text-sm font-bold text-gray-900"><?= e($v['codigo_venta']) ?></p>
+                <p class="text-sm font-bold text-gray-900"><?= e($v['codigo']) ?></p>
                 <p class="text-[10px] text-gray-400 uppercase"><?= e($v['cliente_nombre'] ?: 'Cliente Final') ?></p>
               </div>
               <p class="text-sm font-black text-gray-900"><?= money((float)$v['total']) ?></p>

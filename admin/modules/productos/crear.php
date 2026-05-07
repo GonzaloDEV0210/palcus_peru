@@ -143,14 +143,17 @@ $defaultSku = ''; // Will be filled by JS
             </div>
 
             <div class="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 class="font-semibold text-gray-900 mb-4">Imagen</h3>
-              <div>
-                <label class="form-label" for="imagen_url">URL de imagen</label>
-                <input id="imagen_url" name="imagen_url" type="url" class="form-input"
-                  value="<?= e($_POST['imagen_url'] ?? '') ?>" placeholder="https://..."/>
-              </div>
-              <div id="imgPreview" class="mt-3 hidden">
-                <img id="imgPreviewEl" src="" alt="" class="w-full h-40 object-cover rounded-xl border border-gray-200"/>
+              <h3 class="font-semibold text-gray-900 mb-4">Imagen del Producto</h3>
+              <div class="space-y-4">
+                <div id="imgPreview" class="<?= empty($_POST['imagen_url']) ? 'hidden' : '' ?> mb-3">
+                  <img id="imgPreviewEl" src="<?= e($_POST['imagen_url'] ?? '') ?>" alt="" class="w-full h-40 object-cover rounded-xl border border-gray-200"/>
+                </div>
+                <input type="hidden" name="imagen_url" id="imagen_url" value="<?= e($_POST['imagen_url'] ?? '') ?>"/>
+                <button type="button" id="upload_widget" class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-gray-900 hover:text-gray-900 transition-all">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span class="text-sm font-medium">Subir Imagen</span>
+                </button>
+                <p class="text-[10px] text-center text-gray-400">Recomendado: 800x800px (JPG/PNG)</p>
               </div>
             </div>
 
@@ -226,6 +229,31 @@ if(pc && pv) {
     pv.addEventListener('input', updateMargen);
     updateMargen();
 }
+
+// Cloudinary Widget
+const cloudName = "dv7nmkmpm";
+const uploadPreset = "palcus_preset";
+
+const myWidget = cloudinary.createUploadWidget({
+    cloudName: cloudName, 
+    uploadPreset: uploadPreset,
+    sources: ['local', 'url', 'camera'],
+    multiple: false,
+    clientAllowedFormats: ["png", "jpg", "jpeg", "webp"],
+    maxFileSize: 2000000, // 2MB
+    cropping: true,
+    croppingAspectRatio: 1,
+    showSkipCropButton: false
+}, (error, result) => { 
+    if (!error && result && result.event === "success") { 
+        const url = result.info.secure_url;
+        document.getElementById('imagen_url').value = url;
+        document.getElementById('imgPreviewEl').src = url;
+        document.getElementById('imgPreview').classList.remove('hidden');
+    }
+});
+
+document.getElementById("upload_widget").addEventListener("click", () => myWidget.open(), false);
 </script>
 </body>
 </html>

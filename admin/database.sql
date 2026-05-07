@@ -35,6 +35,7 @@ CREATE TABLE `usuarios` (
 CREATE TABLE `categorias` (
   `id`          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `nombre`      VARCHAR(100) NOT NULL,
+  `prefijo`     VARCHAR(10)  DEFAULT NULL,
   `descripcion` TEXT         DEFAULT NULL,
   `activo`      TINYINT(1)   NOT NULL DEFAULT 1,
   `created_at`  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
@@ -224,10 +225,10 @@ INSERT INTO `usuarios` (`nombre`,`email`,`password_hash`,`rol`) VALUES
 ('Administrador','admin@palcus.com','$2y$12$emC8uwkeAP9kAK9w2n7hJulwf1iwZxmUJyB2xjzIv5FYVUQUkU3DG','admin');
 
 -- Categorías base
-INSERT INTO `categorias` (`nombre`,`descripcion`) VALUES
-('Manga Corta',  'Polos con manga corta para mujer'),
-('Manga Cero',   'Tops sin mangas para mujer'),
-('Cuello Canoa', 'Polos con cuello canoa para mujer');
+INSERT INTO `categorias` (`nombre`,`prefijo`,`descripcion`) VALUES
+('Manga Corta',  'MANCO', 'Polos con manga corta para mujer'),
+('Manga Cero',   'MANCE', 'Tops sin mangas para mujer'),
+('Cuello Canoa', 'CUECA', 'Polos con cuello canoa para mujer');
 
 -- Configuración por defecto
 INSERT INTO `configuracion` (`clave`,`valor`,`descripcion`) VALUES

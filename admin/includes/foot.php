@@ -2,6 +2,8 @@
 // foot.php — JS común para todas las páginas del admin 
 include_once __DIR__ . '/premium_alerts.php';
 ?>
+<!-- Cloudinary Widget -->
+<script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
 <script>
 function toggleSidebar() {
   const s = document.getElementById('sidebar');
