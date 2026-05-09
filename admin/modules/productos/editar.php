@@ -20,28 +20,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $d = [
     'nombre'        => trim($_POST['nombre']        ?? ''),
     'sku'           => trim($_POST['sku']           ?? ''),
-    'descripcion'   => trim($_POST['descripcion']   ?? ''),
     'categoria_id'  => (int)($_POST['categoria_id'] ?? 0) ?: null,
     'precio_compra' => (float)str_replace(',','.',  $_POST['precio_compra'] ?? '0'),
     'precio_venta'  => (float)str_replace(',','.',  $_POST['precio_venta']  ?? '0'),
+    'caracteristicas' => trim($_POST['caracteristicas'] ?? ''),
+    'info_modelo'     => trim($_POST['info_modelo']     ?? ''),
     'activo'        => isset($_POST['activo']) ? 1 : 0,
   ];
 
-  // Subida de imagen a Cloudinary (solo si se cambió)
-  if (!empty($_FILES['foto']['name'])) {
-    $uploadedUrl = cloudinaryUpload($_FILES['foto']);
-    if ($uploadedUrl) {
-        // Borrar imagen anterior de Cloudinary si existía
-        if (!empty($p['imagen_url'])) {
-            cloudinaryDestroy($p['imagen_url']);
-        }
-        $d['imagen_url'] = $uploadedUrl;
-    } else {
-        $errors[] = 'Error al subir la nueva imagen.';
-    }
-  } else {
     $d['imagen_url'] = $p['imagen_url'];
-  }
   if (!$d['nombre'])         $errors[] = 'El nombre es obligatorio.';
   if (!$d['categoria_id'])   $errors[] = 'La categoría es obligatoria.';
   if ($d['precio_compra']<=0) $errors[] = 'El precio de compra es obligatorio.';
@@ -54,11 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if (!$errors) {
     db()->execute(
-      'UPDATE productos SET nombre=?,sku=?,descripcion=?,categoria_id=?,precio_compra=?,precio_venta=?,imagen_url=?,activo=? WHERE id=?',
-      [$d['nombre'],$d['sku'],$d['descripcion'],$d['categoria_id'],
-       $d['precio_compra'],$d['precio_venta'],$d['imagen_url'],$d['activo'],$id]
+      'UPDATE productos SET nombre=?,sku=?,descripcion=?,categoria_id=?,precio_compra=?,precio_venta=?,imagen_url=?,caracteristicas=?,info_modelo=?,activo=? WHERE id=?',
+      [$d['nombre'],$d['sku'],'', $d['categoria_id'],
+       $d['precio_compra'],$d['precio_venta'],$d['imagen_url'],$d['caracteristicas'],$d['info_modelo'],$d['activo'],$id]
     );
-    $_SESSION['flash'] = ['type'=>'success','msg'=>'Producto actualizado correctamente.'];
+
     header('Location: index.php');
     exit;
   }
@@ -130,8 +117,12 @@ $categorias = db()->fetchAll('SELECT id, nombre FROM categorias WHERE activo=1 O
                   </div>
                 </div>
                 <div>
-                  <label class="form-label">Descripción</label>
-                  <textarea name="descripcion" rows="3" class="form-input resize-none"><?= e($p['descripcion'] ?? '') ?></textarea>
+                  <label class="form-label">Características del producto</label>
+                  <textarea name="caracteristicas" rows="4" class="form-input resize-none" placeholder="Algodón premium, costuras reforzadas..."><?= e($p['caracteristicas'] ?? '') ?></textarea>
+                </div>
+                <div>
+                  <label class="form-label">Información del modelo</label>
+                  <textarea name="info_modelo" rows="3" class="form-input resize-none" placeholder="Usa talla S, mide 1.70m..."><?= e($p['info_modelo'] ?? '') ?></textarea>
                 </div>
               </div>
             </div>
@@ -155,23 +146,6 @@ $categorias = db()->fetchAll('SELECT id, nombre FROM categorias WHERE activo=1 O
             </div>
 
             <div class="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 class="font-semibold text-gray-900 mb-4">Imagen del Producto</h3>
-              <div class="space-y-4">
-                <div id="imgPreview" class="<?= empty($p['imagen_url']) ? 'hidden' : '' ?> mb-3">
-                  <img id="imgPreviewEl" src="<?= e($p['imagen_url'] ?? '') ?>" alt="" class="w-full h-40 object-cover rounded-xl border border-gray-200"/>
-                </div>
-                <div class="relative group">
-                  <input type="file" name="foto" id="foto_input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
-                  <div class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 group-hover:border-gray-900 group-hover:text-gray-900 transition-all">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    <span id="foto_label" class="text-sm font-medium">Cambiar Foto</span>
-                  </div>
-                </div>
-                <p class="text-[10px] text-center text-gray-400">La nueva foto se subirá solo al guardar los cambios.</p>
-              </div>
-            </div>
-
-            <div class="bg-white rounded-2xl border border-gray-200 p-5">
               <label class="flex items-center gap-3 cursor-pointer">
                 <input type="checkbox" name="activo" value="1" <?= $p['activo']?'checked':'' ?>
                   class="w-4 h-4 rounded border-gray-300"/>
@@ -179,9 +153,13 @@ $categorias = db()->fetchAll('SELECT id, nombre FROM categorias WHERE activo=1 O
               </label>
             </div>
 
-            <div class="flex gap-3">
-              <a href="index.php" class="flex-1 text-center py-2.5 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors">Cancelar</a>
-              <button type="submit" class="flex-1 bg-gray-900 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors">Guardar cambios</button>
+            <div class="flex gap-3 pt-2">
+              <a href="index.php" class="flex-1 text-center py-3 border border-gray-200 text-gray-500 text-[10px] font-bold uppercase tracking-wider rounded-xl hover:bg-gray-50 transition-colors">
+                Cancelar
+              </a>
+              <button type="submit" class="flex-1 bg-gray-900 hover:bg-black text-white text-[10px] font-bold uppercase tracking-widest py-3 rounded-xl transition-all shadow-lg shadow-gray-200 active:scale-[0.98]">
+                Guardar cambios
+              </button>
             </div>
 
             <a href="variaciones.php?id=<?= $id ?>"

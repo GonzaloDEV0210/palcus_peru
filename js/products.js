@@ -28,7 +28,12 @@ window.PalcusUtil = {
     const s = (cat || "").toLowerCase();
     return window.PALCUS_PRODUCTS.filter(p => (p.category || "").toLowerCase() === s);
   },
-  byId: (id) => window.PALCUS_PRODUCTS.find(p => p.id === id),
+  byId: (id) => {
+    if (!id) return null;
+    const searchId = String(id).trim();
+    return window.PALCUS_PRODUCTS.find(p => String(p.id).trim() == searchId);
+  },
+  trackView: (id) => { console.log("Vista trackeada para el producto:", id); },
   
   getNewest: (limit = 3) => {
     const now = new Date();

@@ -26,16 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $color     = trim($_POST['color']     ?? '');
     $color_hex = trim($_POST['color_hex'] ?? '#000000');
     $diseno    = trim($_POST['diseno']    ?? 'Estándar');
-    $stock     = (int)($_POST['stock'] ?? 0);
-    $stockMin  = max(0, (int)($_POST['stock_minimo'] ?? 5));
     $img_url   = '';
 
     if (empty($tallas) || !$color) { $errors[] = 'Debes seleccionar al menos una talla y el color.'; }
-    if ($stock < 0) { $errors[] = 'El stock inicial debe ser 0 o más.'; }
     
     if (empty($errors)) {
-        // Subir imagen una sola vez para todas las tallas
-        if (!empty($_FILES['foto']['name'])) {
+        // --- PROCESO NORMAL (Un solo color) ---
+        if (!empty($_FILES['foto']['name']) && !is_array($_FILES['foto']['name'])) {
             $uploadedUrl = cloudinaryUpload($_FILES['foto']);
             if ($uploadedUrl) { $img_url = $uploadedUrl; }
             else { $errors[] = 'Error al subir la imagen.'; }
@@ -45,6 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $addedCount = 0;
             foreach ($tallas as $talla) {
                 $talla = trim($talla);
+                $stock     = (int)($_POST['stock_talla'][$talla] ?? 0);
+                $stockMin  = max(0, (int)($_POST['stock_min_talla'][$talla] ?? 5));
+
                 $exists = db()->fetchOne(
                     'SELECT id FROM variaciones WHERE producto_id=? AND talla=? AND color=? AND diseno=?',
                     [$id, $talla, $color, $diseno]
@@ -55,7 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         [$id, $talla, $color, $color_hex, $diseno, $img_url, $stock, $stockMin]
                     );
                     $addedCount++;
-                    // Registrar movimiento si stock > 0
                     if ($stock > 0) {
                         $varId = db()->lastInsertId();
                         db()->execute(
@@ -66,12 +65,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             if ($addedCount > 0) {
-                $_SESSION['flash'] = ['type'=>'success','msg'=>"$addedCount variaciones agregadas correctamente."];
+                $_SESSION['flash'] = ['type'=>'success','msg'=>"$addedCount variaciones agregadas."];
                 header("Location: variaciones.php?id=$id"); exit;
             } else {
-                $errors[] = 'Las variaciones seleccionadas ya existen.';
+                $errors[] = 'Las variaciones ya existen.';
             }
         }
+    }
+  }
+
+  if ($action === 'bulk_add') {
+    $tallas = $_POST['tallas'] ?? [];
+    $diseno = trim($_POST['diseno'] ?? 'Estándar');
+    $bulk_colors = $_POST['bulk_colors'] ?? []; // [{name, hex, index}]
+    
+    if (empty($tallas) || empty($bulk_colors)) {
+        $errors[] = 'Debes seleccionar tallas y al menos un color.';
+    }
+
+    if (empty($errors)) {
+        $addedTotal = 0;
+        foreach ($bulk_colors as $index => $cData) {
+            $cName = trim($cData['name']);
+            $cHex  = trim($cData['hex']);
+            $vImgUrl = '';
+
+            if (!empty($_FILES['bulk_fotos']['name'][$index])) {
+                $tmpFile = [
+                    'tmp_name' => $_FILES['bulk_fotos']['tmp_name'][$index],
+                    'name'     => $_FILES['bulk_fotos']['name'][$index],
+                    'error'    => $_FILES['bulk_fotos']['error'][$index],
+                    'size'     => $_FILES['bulk_fotos']['size'][$index]
+                ];
+                $vImgUrl = cloudinaryUpload($tmpFile);
+            }
+
+            foreach ($tallas as $talla) {
+                // Obtener stock específico para este color y esta talla
+                $stock = (int)($cData['stocks'][$talla] ?? 0);
+                $stockMin = (int)($cData['mins'][$talla] ?? 5);
+
+                $exists = db()->fetchOne(
+                    'SELECT id FROM variaciones WHERE producto_id=? AND talla=? AND color=? AND diseno=?',
+                    [$id, $talla, $cName, $diseno]
+                );
+                if (!$exists) {
+                    db()->execute(
+                        'INSERT INTO variaciones (producto_id, talla, color, color_hex, diseno, imagen_url, stock, stock_minimo) VALUES (?,?,?,?,?,?,?,?)',
+                        [$id, $talla, $cName, $cHex, $diseno, $vImgUrl, $stock, $stockMin]
+                    );
+                    $varId = db()->lastInsertId();
+                    if ($stock > 0) {
+                        db()->execute(
+                            'INSERT INTO movimientos_inventario (tipo,variacion_id,producto_id,nombre_producto,talla,color,diseno,cantidad,stock_antes,stock_despues,motivo,usuario_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+                            ['entrada',$varId,$id,$producto['nombre'],$talla,$cName,$diseno,$stock,0,$stock,'Stock inicial (Carga lote)',currentUser()['id']]
+                        );
+                    }
+                    $addedTotal++;
+                }
+            }
+        }
+        $_SESSION['flash'] = ['type'=>'success','msg'=>"Se han creado $addedTotal variaciones por lote."];
+        header("Location: variaciones.php?id=$id"); exit;
     }
   }
 
@@ -267,66 +322,114 @@ $tallasComunes = ['XS','S','M','L','XL','XXL','XXXL'];
 
         <!-- Add variation form -->
         <div class="space-y-5">
-          <div class="bg-white rounded-2xl border border-gray-200 p-5">
-            <h3 class="font-semibold text-gray-900 mb-4">Agregar variación</h3>
-            <form method="POST" enctype="multipart/form-data" class="space-y-3">
-              <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>"/>
-              <input type="hidden" name="action" value="add"/>
-              <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-2">Tallas <span class="text-red-500">*</span></label>
-                <div class="flex flex-wrap gap-1.5">
-                  <?php foreach ($tallasComunes as $t): ?>
-                  <label class="group relative inline-flex items-center justify-center p-0.5 rounded-lg border border-gray-200 bg-white cursor-pointer hover:border-gray-900 transition-all has-[:checked]:bg-gray-900 has-[:checked]:border-gray-900 has-[:checked]:text-white">
-                    <input type="checkbox" name="tallas[]" value="<?= $t ?>" class="sr-only"/>
-                    <span class="px-2.5 py-1 text-[10px] font-bold uppercase"><?= $t ?></span>
-                  </label>
-                  <?php endforeach; ?>
-                </div>
-              </div>
-                <div>
-                  <label class="block text-xs font-semibold text-gray-600 mb-1">Color *</label>
-                  <div class="flex gap-1">
-                    <input name="color" id="color_name_new" class="form-input" placeholder="Nombre del color..." required/>
-                    <input type="color" name="color_hex" id="color_hex_new" value="#000000" class="w-10 h-9 p-0 border-0 bg-transparent cursor-pointer rounded-lg overflow-hidden"/>
+          <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+            <div class="flex bg-gray-50/50">
+              <button onclick="setTab('single')" id="tab-single" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-widest border-b-2 border-gray-900 text-gray-900 transition-all">Individual</button>
+              <button onclick="setTab('bulk')" id="tab-bulk" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-widest border-b-2 border-transparent text-gray-400 hover:text-gray-600 transition-all">Por Lote (Varios Colores)</button>
+            </div>
+
+            <!-- Individual Form -->
+            <div id="form-single" class="p-5">
+              <h3 class="font-semibold text-gray-900 mb-4 italic text-xs">Añadir un solo color</h3>
+              <form method="POST" enctype="multipart/form-data" class="space-y-3">
+                <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>"/>
+                <input type="hidden" name="action" value="add"/>
+                <!-- Tallas Checkboxes (Shared) -->
+                <div class="tallas-selector">
+                  <label class="block text-xs font-semibold text-gray-600 mb-2">Tallas <span class="text-red-500">*</span></label>
+                  <div class="flex flex-wrap gap-1.5">
+                    <?php foreach ($tallasComunes as $t): ?>
+                    <label class="group relative inline-flex items-center justify-center p-0.5 rounded-lg border border-gray-200 bg-white cursor-pointer hover:border-gray-900 transition-all has-[:checked]:bg-gray-900 has-[:checked]:border-gray-900 has-[:checked]:text-white">
+                      <input type="checkbox" name="tallas[]" value="<?= $t ?>" class="sr-only talla-cb"/>
+                      <span class="px-2.5 py-1 text-[10px] font-bold uppercase"><?= $t ?></span>
+                    </label>
+                    <?php endforeach; ?>
                   </div>
                 </div>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Diseño gráfico (Ej: Estrella, Corazón)</label>
-                <input name="diseno" class="form-input" placeholder="Ej: Estrella, Bordado, Estándar..." value=""/>
-              </div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Imagen de la variante</label>
-                <div class="flex items-center gap-3">
-                   <div id="newVarPreview" class="hidden">
+
+                <div class="grid grid-cols-1 gap-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Color *</label>
+                    <div class="flex gap-1">
+                      <input name="color" id="color_name_new" class="form-input" placeholder="Nombre del color..." required/>
+                      <input type="color" name="color_hex" id="color_hex_new" value="#000000" class="w-10 h-9 p-0 border-0 bg-transparent cursor-pointer rounded-lg overflow-hidden"/>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">Diseño gráfico</label>
+                  <input name="diseno" class="form-input" placeholder="Ej: Estrella, Corazón..." value="Estándar"/>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">Imagen del color</label>
+                  <div class="flex items-center gap-3">
+                    <div id="newVarPreview" class="hidden">
                       <img id="newVarPreviewImg" src="" class="w-12 h-12 object-cover rounded-lg border border-gray-200"/>
-                   </div>
-                   <div class="relative flex-1 group">
+                    </div>
+                    <div class="relative flex-1 group">
                       <input type="file" name="foto" id="foto_new" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
                       <div class="flex items-center justify-center gap-2 py-2 border border-gray-200 rounded-xl text-[10px] text-gray-500 group-hover:border-gray-900 group-hover:text-gray-900 transition-all">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         <span id="label_new">Elegir Foto</span>
                       </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Dynamic Stock (Oculto inicialmente, se muestra por JS) -->
+                <div id="stock_configs_single" class="space-y-2 border-t border-gray-100 pt-3 hidden">
+                  <div id="stock_inputs_container_single" class="space-y-2"></div>
+                </div>
+
+                <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white text-[11px] font-bold uppercase tracking-wide py-3 rounded-xl transition-all shadow-lg shadow-gray-200 active:scale-[0.98]">
+                  + Agregar color
+                </button>
+              </form>
+            </div>
+
+            <!-- Bulk Form -->
+            <div id="form-bulk" class="p-5 hidden">
+              <h3 class="font-semibold text-gray-900 mb-4 italic text-xs">Subir varios colores a la vez</h3>
+              <form method="POST" enctype="multipart/form-data" class="space-y-4">
+                <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>"/>
+                <input type="hidden" name="action" value="bulk_add"/>
+                
+                <div class="tallas-selector">
+                  <label class="block text-xs font-semibold text-gray-600 mb-2">Tallas para todos <span class="text-red-500">*</span></label>
+                  <div class="flex flex-wrap gap-1.5">
+                    <?php foreach ($tallasComunes as $t): ?>
+                    <label class="group relative inline-flex items-center justify-center p-0.5 rounded-lg border border-gray-200 bg-white cursor-pointer hover:border-gray-900 transition-all has-[:checked]:bg-gray-900 has-[:checked]:border-gray-900 has-[:checked]:text-white">
+                      <input type="checkbox" name="tallas[]" value="<?= $t ?>" class="sr-only talla-cb-bulk"/>
+                      <span class="px-2.5 py-1 text-[10px] font-bold uppercase"><?= $t ?></span>
+                    </label>
+                    <?php endforeach; ?>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">Diseño común (Ej: Estrella)</label>
+                  <input name="diseno" class="form-input" placeholder="Ej: Estrella..." value="Estándar"/>
+                </div>
+
+                <div class="border-2 border-dashed border-gray-100 rounded-xl p-4 text-center group hover:border-gray-900 transition-all cursor-pointer relative">
+                   <input type="file" id="bulk_files" name="fotos[]" multiple accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer"/>
+                   <div class="flex flex-col items-center gap-1 text-gray-400 group-hover:text-gray-900">
+                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                     <p class="text-xs font-bold uppercase">Seleccionar todas las fotos de colores</p>
+                     <p class="text-[10px]">Puedes elegir varios archivos a la vez</p>
                    </div>
                 </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-xs font-semibold text-gray-600 mb-1">Stock inicial <span class="text-red-500">*</span></label>
-                  <input name="stock" type="number" min="0" value="0" class="form-input" required/>
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-gray-600 mb-1">Stock mínimo</label>
-                  <input name="stock_minimo" type="number" min="0" value="5" class="form-input"/>
-                </div>
-              </div>
-              <button type="submit" class="w-full bg-gray-900 hover:bg-gray-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors">
-                + Agregar variación
-              </button>
-            </form>
+
+                <div id="bulk_preview_container" class="space-y-3"></div>
+
+                <button type="submit" id="btn-bulk-submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold uppercase tracking-wide py-3 rounded-xl transition-all shadow-lg shadow-emerald-100 active:scale-[0.98] hidden">
+                   Registrar todos los colores →
+                </button>
+              </form>
+            </div>
           </div>
 
-          <a href="index.php" class="block text-center py-2.5 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors">
-            ← Volver a productos
+          <a href="index.php" class="block text-center py-2.5 border border-gray-200 text-gray-500 text-[10px] font-bold uppercase tracking-wider rounded-xl hover:bg-gray-50 transition-colors">
+            ← Volver al listado
           </a>
         </div>
       </div>
@@ -475,6 +578,143 @@ function setupColorSync(pickerId, nameId) {
   });
 }
 setupColorSync('color_hex_new', 'color_name_new');
+
+// --- TAB Logic ---
+function setTab(t) {
+  const ts = document.getElementById('tab-single'), tb = document.getElementById('tab-bulk');
+  const fs = document.getElementById('form-single'), fb = document.getElementById('form-bulk');
+  if (t === 'single') {
+    ts.className = ts.className.replace('text-gray-400', 'text-gray-900 bg-gray-50').replace('border-transparent', 'border-gray-900');
+    tb.className = tb.className.replace('text-gray-900 bg-gray-50', 'text-gray-400').replace('border-gray-900', 'border-transparent');
+    fs.classList.remove('hidden'); fb.classList.add('hidden');
+  } else {
+    tb.className = tb.className.replace('text-gray-400', 'text-gray-900 bg-gray-50').replace('border-transparent', 'border-gray-900');
+    ts.className = ts.className.replace('text-gray-900 bg-gray-50', 'text-gray-400').replace('border-gray-900', 'border-transparent');
+    fb.classList.remove('hidden'); fs.classList.add('hidden');
+  }
+}
+
+// --- Dynamic Stock (Individual) ---
+const tSingleCBs = document.querySelectorAll('.talla-cb');
+const stockSingleWrap = document.getElementById('stock_configs_single');
+const stockSingleContainer = document.getElementById('stock_inputs_container_single');
+
+function updateStockSingle() {
+    const selected = Array.from(tSingleCBs).filter(cb => cb.checked);
+    if (selected.length > 0) {
+        stockSingleWrap.classList.remove('hidden');
+        stockSingleContainer.innerHTML = `
+            <div class="flex items-center gap-2 mb-1 px-2">
+                <span class="w-8"></span>
+                <div class="flex-1 grid grid-cols-2 gap-2 text-[9px] font-bold text-gray-400 uppercase">
+                    <span>Stock Actual</span>
+                    <span>Stock Mínimo</span>
+                </div>
+            </div>
+            ${selected.map(cb => `
+                <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                    <span class="w-8 font-bold text-[10px] text-gray-700 text-center">${cb.value}</span>
+                    <div class="flex-1 grid grid-cols-2 gap-2">
+                        <input type="number" name="stock_talla[${cb.value}]" value="0" min="0" class="w-full text-[10px] p-1.5 border border-gray-200 rounded-md outline-none focus:border-gray-900 font-bold" placeholder="0">
+                        <input type="number" name="stock_min_talla[${cb.value}]" value="5" min="0" class="w-full text-[10px] p-1.5 border border-gray-200 rounded-md outline-none focus:border-gray-900 text-gray-500" placeholder="5">
+                    </div>
+                </div>
+            `).join('')}`;
+    } else {
+        stockSingleWrap.classList.add('hidden');
+        stockSingleContainer.innerHTML = '';
+    }
+}
+tSingleCBs.forEach(cb => cb.addEventListener('change', updateStockSingle));
+
+// --- Bulk Upload Logic ---
+const bulkFilesInput = document.getElementById('bulk_files');
+const bulkPreviewContainer = document.getElementById('bulk_preview_container');
+const btnBulkSubmit = document.getElementById('btn-bulk-submit');
+
+function renderBulkStockInputs(index) {
+    const selectedTallas = Array.from(document.querySelectorAll('.talla-cb-bulk')).filter(cb => cb.checked).map(cb => cb.value);
+    if (selectedTallas.length === 0) return '<p class="text-[10px] text-amber-600 font-medium">⚠️ Selecciona tallas arriba para poner el stock</p>';
+    
+    return `
+        <div class="mt-3 pt-3 border-t border-gray-50">
+            <div class="flex items-center gap-2 mb-2 px-2">
+                <span class="w-6"></span>
+                <div class="flex-1 grid grid-cols-2 gap-2 text-[9px] font-bold text-gray-400 uppercase">
+                    <span>Stock Actual</span>
+                    <span>Stock Mínimo</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 gap-2">
+                ${selectedTallas.map(t => `
+                    <div class="flex items-center gap-2 bg-gray-50/50 p-2 rounded-lg border border-gray-100">
+                        <span class="w-6 font-bold text-[10px] text-gray-600 text-center">${t}</span>
+                        <div class="flex-1 grid grid-cols-2 gap-2">
+                            <input type="number" name="bulk_colors[${index}][stocks][${t}]" value="0" min="0" class="w-full text-[10px] p-1.5 border border-gray-200 rounded-md outline-none focus:border-gray-900 font-bold text-gray-900" placeholder="0">
+                            <input type="number" name="bulk_colors[${index}][mins][${t}]" value="5" min="0" class="w-full text-[10px] p-1.5 border border-gray-200 rounded-md outline-none focus:border-gray-900 text-gray-500" placeholder="5">
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function updateAllBulkStock() {
+    const previews = bulkPreviewContainer.querySelectorAll('.bulk-item');
+    previews.forEach(item => {
+        const index = item.getAttribute('data-index');
+        const stockArea = item.querySelector('.stock-area');
+        stockArea.innerHTML = renderBulkStockInputs(index);
+    });
+}
+
+document.querySelectorAll('.talla-cb-bulk').forEach(cb => cb.addEventListener('change', updateAllBulkStock));
+
+bulkFilesInput.addEventListener('change', function(e) {
+  const files = e.target.files;
+  bulkPreviewContainer.innerHTML = '';
+  if (files.length > 0) {
+    btnBulkSubmit.classList.remove('hidden');
+    Array.from(files).forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const hexSugg = Object.keys(colorNames)[Math.floor(Math.random() * Object.keys(colorNames).length)];
+        const div = document.createElement('div');
+        div.className = 'bulk-item bg-white p-4 border border-gray-200 rounded-2xl flex flex-col gap-3 shadow-sm';
+        div.setAttribute('data-index', index);
+        div.innerHTML = `
+          <div class="flex items-center gap-4">
+            <div class="relative group">
+                <img src="${e.target.result}" class="w-16 h-20 object-cover rounded-xl border border-gray-100 shadow-sm">
+                <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 rounded-xl transition-all"></div>
+            </div>
+            <div class="flex-1 space-y-3">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase block mb-1">Nombre y Color:</label>
+                    <div class="flex gap-1">
+                      <input name="bulk_colors[${index}][name]" class="flex-1 text-xs font-semibold p-2 border border-gray-200 rounded-xl outline-none focus:border-gray-900 bg-gray-50/30" placeholder="Ej: Rojo Pasión" required>
+                      <input type="color" name="bulk_colors[${index}][hex]" value="${hexSugg}" class="w-10 h-10 p-0 border-0 bg-transparent cursor-pointer rounded-xl overflow-hidden">
+                    </div>
+                </div>
+                <input type="file" name="bulk_fotos[${index}]" class="hidden" id="bulk_file_${index}">
+            </div>
+          </div>
+          <div class="stock-area">
+            ${renderBulkStockInputs(index)}
+          </div>
+        `;
+        bulkPreviewContainer.appendChild(div);
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        document.getElementById(`bulk_file_${index}`).files = dt.files;
+      };
+      reader.readAsDataURL(file);
+    });
+  } else {
+    btnBulkSubmit.classList.add('hidden');
+  }
+});
 </script>
 </body>
 </html>

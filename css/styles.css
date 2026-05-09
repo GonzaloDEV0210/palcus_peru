@@ -293,12 +293,34 @@ button { font-family: inherit; cursor: pointer; }
   overflow: hidden;
   background: var(--accent);
   aspect-ratio: 3/4;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  transition: border-color 0.3s ease;
 }
-.product-card img {
-  width: 100%; height: 100%; object-fit: cover;
-  transition: transform 0.5s;
+.product-card:hover .img-wrap {
+  border-color: var(--foreground);
 }
-.product-card:hover img { transform: scale(1.05); }
+.product-slider-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.product-card:hover .product-slider-container {
+  transform: scale(1.08);
+}
+.slider-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out;
+}
+.slider-img.active {
+  opacity: 1;
+}
 .product-tag {
   position: absolute;
   top: 0.75rem; left: 0.75rem;

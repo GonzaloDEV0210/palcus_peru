@@ -28,23 +28,31 @@ try {
     $productos = [];
     foreach ($productosRaw as $p) {
         // Obtener variaciones
-        $vars = db()->fetchAll("SELECT talla, color, stock FROM variaciones WHERE producto_id = ? AND activo = 1", [$p['id']]);
+        $vars = db()->fetchAll("SELECT talla, color, color_hex, diseno, imagen_url, stock FROM variaciones WHERE producto_id = ? AND activo = 1", [$p['id']]);
         
         $sizes = array_unique(array_column($vars, 'talla'));
-        $colorsRaw = array_unique(array_column($vars, 'color'));
+        $designs = array_unique(array_column($vars, 'diseno'));
         
+        // Agrupar colores únicos con su respectivo HEX desde la DB
         $colors = [];
-        $colorHexMap = [
-            'Blanco' => '#ffffff', 'Negro' => '#000000', 'Azul' => '#1e3a8a', 
-            'Marrón' => '#78350f', 'Mostaza' => '#eab308', 'Gris' => '#6b7280',
-            'Rojo' => '#ef4444', 'Verde' => '#10b981'
-        ];
-
-        foreach ($colorsRaw as $cname) {
-            $colors[] = ['name' => $cname, 'hex' => $colorHexMap[$cname] ?? '#cccccc'];
+        $colorData = [];
+        $imageMap = [];
+        foreach ($vars as $v) {
+            $cname = $v['color'];
+            if (!isset($colorData[$cname])) {
+                $colorData[$cname] = $v['color_hex'] ?: '#cccccc';
+            }
+            // Construir mapa de imágenes por color y diseño
+            if ($v['imagen_url']) {
+                $imageMap[$cname][$v['diseno']] = $v['imagen_url'];
+            }
+        }
+        foreach ($colorData as $name => $hex) {
+            $colors[] = ['name' => $name, 'hex' => $hex];
         }
 
         $slug = strtolower(str_replace(' ', '-', $p['category_name'] ?? 'general'));
+        $gallery = db()->fetchAll("SELECT imagen_url FROM producto_imagenes WHERE producto_id = ? ORDER BY orden ASC", [$p['id']]);
 
         $productos[] = [
             'id' => $p['id'],
@@ -52,10 +60,16 @@ try {
             'price' => (float)$p['precio_venta'],
             'description' => $p['descripcion'],
             'image' => $p['imagen_url'],
+            'gallery' => array_column($gallery, 'imagen_url'),
+            'features' => $p['caracteristicas'],
+            'modelInfo' => $p['info_modelo'],
             'category' => $slug,
             'sizes' => array_values($sizes),
             'colors' => $colors,
-            'stock' => (int)db()->fetchOne("SELECT SUM(stock) as total FROM variaciones WHERE producto_id = ?", [$p['id']])['total'],
+            'designs' => array_values($designs),
+            'imageMap' => $imageMap,
+            'variations' => $vars,
+            'stock' => (int)db()->fetchOne("SELECT SUM(stock) as total FROM variaciones WHERE producto_id = ? AND activo = 1", [$p['id']])['total'],
             'createdAt' => $p['created_at']
         ];
     }
