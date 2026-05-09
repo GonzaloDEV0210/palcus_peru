@@ -202,3 +202,87 @@ function paginate(string $sql, array $params, int $page, int $perPage = 20): arr
         'last_page'  => $pages,
     ];
 }
+
+/**
+ * Elimina un recurso de Cloudinary usando su URL.
+ */
+function cloudinaryDestroy(?string $url): bool
+{
+    if (!$url || !str_contains($url, 'cloudinary.com')) return false;
+
+    // Extraer Public ID: res.cloudinary.com/<cloud>/image/upload/(v\d+/)?<public_id>.<ext>
+    if (!preg_match('/\/upload\/(?:v\d+\/)?(.+)\.[a-z0-9]+$/i', $url, $matches)) return false;
+    
+    $publicId = $matches[1];
+    $cloudName = defined('CLOUDINARY_CLOUD_NAME') ? CLOUDINARY_CLOUD_NAME : '';
+    $apiKey    = defined('CLOUDINARY_API_KEY') ? CLOUDINARY_API_KEY : '';
+    $apiSecret = defined('CLOUDINARY_API_SECRET') ? CLOUDINARY_API_SECRET : '';
+
+    if (!$cloudName || !$apiKey || !$apiSecret) return false;
+
+    $timestamp = time();
+    $signature = sha1("public_id=$publicId&timestamp=$timestamp$apiSecret");
+
+    $postData = [
+        'public_id' => $publicId,
+        'timestamp' => $timestamp,
+        'api_key'   => $apiKey,
+        'signature' => $signature
+    ];
+
+    $apiUrl = "https://api.cloudinary.com/v1_1/$cloudName/image/destroy";
+
+    $ch = curl_init($apiUrl);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Para evitar problemas en Windows local
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    if (!$response) return false;
+    $res = json_decode($response, true);
+    
+    return ($res['result'] ?? '') === 'ok' || ($res['result'] ?? '') === 'not found';
+}
+
+/**
+ * Sube una imagen a Cloudinary desde el servidor (Signed Upload).
+ */
+function cloudinaryUpload(?array $file): ?string
+{
+    if (!$file || empty($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) return null;
+
+    $cloudName = defined('CLOUDINARY_CLOUD_NAME') ? CLOUDINARY_CLOUD_NAME : '';
+    $apiKey    = defined('CLOUDINARY_API_KEY') ? CLOUDINARY_API_KEY : '';
+    $apiSecret = defined('CLOUDINARY_API_SECRET') ? CLOUDINARY_API_SECRET : '';
+
+    if (!$cloudName || !$apiKey || !$apiSecret) return null;
+
+    $timestamp = time();
+    $signature = sha1("timestamp=$timestamp$apiSecret");
+
+    $postData = [
+        'file'      => new CURLFile($file['tmp_name']),
+        'timestamp' => $timestamp,
+        'api_key'   => $apiKey,
+        'signature' => $signature
+    ];
+
+    $apiUrl = "https://api.cloudinary.com/v1_1/$cloudName/image/upload";
+
+    $ch = curl_init($apiUrl);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    if (!$response) return null;
+    $res = json_decode($response, true);
+    
+    return $res['secure_url'] ?? null;
+}

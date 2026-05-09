@@ -11,6 +11,11 @@ define('DB_USER', 'root');       // En Hostinger: tu usuario de BD cPanel
 define('DB_PASS', '');           // En Hostinger: tu contraseña de BD cPanel
 define('DB_CHARSET', 'utf8mb4');
 
+// --- CLOUDINARY ---
+define('CLOUDINARY_CLOUD_NAME', 'dv7nmkmpm');
+define('CLOUDINARY_API_KEY', '923664445241815');
+define('CLOUDINARY_API_SECRET', 'Z8LcceCtkrmWYb2dIWym1ey8vVY');
+
 // --- APLICACIÓN ---
 define('APP_NAME', 'PalCus Admin');
 define('APP_VERSION', '1.0.0');

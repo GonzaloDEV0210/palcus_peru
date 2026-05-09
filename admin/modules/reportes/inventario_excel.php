@@ -13,7 +13,7 @@ header('Content-Disposition: attachment; filename=' . $filename);
 $output = fopen('php://output', 'w');
 fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-fputcsv($output, ['Producto', 'SKU', 'Categoría', 'Talla', 'Color', 'Stock Actual', 'Stock Mínimo', 'Precio Compra', 'Precio Venta']);
+fputcsv($output, ['Producto', 'SKU', 'Categoría', 'Talla', 'Color', 'Diseño', 'Stock Actual', 'Stock Mínimo', 'Precio Compra', 'Precio Venta']);
 
 $sql = "SELECT v.*, p.nombre AS prod_nombre, p.sku AS prod_sku, p.precio_compra, p.precio_venta, c.nombre AS cat_nombre
         FROM variaciones v
@@ -31,6 +31,7 @@ foreach ($items as $s) {
         $s['cat_nombre'] ?: '—',
         $s['talla'],
         $s['color'],
+        $s['diseno'] ?: 'Estándar',
         $s['stock'],
         $s['stock_minimo'],
         number_format((float)$s['precio_compra'], 2, '.', ''),

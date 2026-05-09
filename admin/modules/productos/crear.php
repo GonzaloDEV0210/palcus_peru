@@ -22,10 +22,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     'categoria_id'  => (int)($_POST['categoria_id'] ?? 0) ?: null,
     'precio_compra' => (float)str_replace(',','.',  $_POST['precio_compra'] ?? '0'),
     'precio_venta'  => (float)str_replace(',','.',  $_POST['precio_venta']  ?? '0'),
-    'imagen_url'    => trim($_POST['imagen_url']    ?? ''),
     'activo'        => isset($_POST['activo']) ? 1 : 0,
   ];
+  
+  // Subida de imagen a Cloudinary (solo si se registró)
+  if (!empty($_FILES['foto']['name'])) {
+    $uploadedUrl = cloudinaryUpload($_FILES['foto']);
+    if ($uploadedUrl) {
+        $d['imagen_url'] = $uploadedUrl;
+    } else {
+        $errors[] = 'Error al subir la imagen a Cloudinary.';
+    }
+  } else {
+    $d['imagen_url'] = '';
+  }
   if (!$d['nombre'])        $errors[] = 'El nombre es obligatorio.';
+  if (!$d['categoria_id'])  $errors[] = 'La categoría es obligatoria.';
+  if ($d['precio_compra']<=0) $errors[] = 'El precio de compra es obligatorio y debe ser mayor a 0.';
   if ($d['precio_venta']<=0) $errors[] = 'El precio de venta debe ser mayor a 0.';
   if ($d['sku'] && db()->fetchOne('SELECT id FROM productos WHERE sku=?', [$d['sku']]))
     $errors[] = 'El SKU ya existe.';
@@ -80,7 +93,7 @@ $defaultSku = ''; // Will be filled by JS
       </div>
       <?php endif; ?>
 
-      <form method="POST">
+      <form method="POST" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>"/>
 
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
@@ -102,9 +115,9 @@ $defaultSku = ''; // Will be filled by JS
                       value="<?= e($_POST['sku'] ?? $defaultSku) ?>" placeholder="Selecciona una categoría..."/>
                   </div>
                   <div>
-                    <label class="form-label" for="categoria_id">Categoría</label>
-                    <select id="categoria_id" name="categoria_id" class="form-input">
-                      <option value="">Sin categoría</option>
+                    <label class="form-label" for="categoria_id">Categoría <span class="text-red-500">*</span></label>
+                    <select id="categoria_id" name="categoria_id" class="form-input" required>
+                      <option value="">Seleccione categoría...</option>
                       <?php foreach ($categorias as $cat): ?>
                       <option value="<?= $cat['id'] ?>" <?= ($_POST['categoria_id']??'')==$cat['id']?'selected':'' ?>>
                         <?= e($cat['nombre']) ?>
@@ -128,9 +141,9 @@ $defaultSku = ''; // Will be filled by JS
               <h3 class="font-semibold text-gray-900 mb-4">Precios</h3>
               <div class="space-y-4">
                 <div>
-                  <label class="form-label" for="precio_compra">Precio de compra (S/)</label>
-                  <input id="precio_compra" name="precio_compra" type="number" step="0.01" min="0"
-                    class="form-input" value="<?= e($_POST['precio_compra'] ?? '0.00') ?>"/>
+                  <label class="form-label" for="precio_compra">Precio de compra (S/) <span class="text-red-500">*</span></label>
+                  <input id="precio_compra" name="precio_compra" type="number" step="0.01" min="0.01"
+                    class="form-input" value="<?= e($_POST['precio_compra'] ?? '') ?>" required/>
                 </div>
                 <div>
                   <label class="form-label" for="precio_venta">Precio de venta (S/) <span class="text-red-500">*</span></label>
@@ -145,15 +158,17 @@ $defaultSku = ''; // Will be filled by JS
             <div class="bg-white rounded-2xl border border-gray-200 p-5">
               <h3 class="font-semibold text-gray-900 mb-4">Imagen del Producto</h3>
               <div class="space-y-4">
-                <div id="imgPreview" class="<?= empty($_POST['imagen_url']) ? 'hidden' : '' ?> mb-3">
-                  <img id="imgPreviewEl" src="<?= e($_POST['imagen_url'] ?? '') ?>" alt="" class="w-full h-40 object-cover rounded-xl border border-gray-200"/>
+                <div id="imgPreview" class="hidden mb-3">
+                  <img id="imgPreviewEl" src="" alt="" class="w-full h-40 object-cover rounded-xl border border-gray-200"/>
                 </div>
-                <input type="hidden" name="imagen_url" id="imagen_url" value="<?= e($_POST['imagen_url'] ?? '') ?>"/>
-                <button type="button" id="upload_widget" class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-gray-900 hover:text-gray-900 transition-all">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  <span class="text-sm font-medium">Subir Imagen</span>
-                </button>
-                <p class="text-[10px] text-center text-gray-400">Recomendado: 800x800px (JPG/PNG)</p>
+                <div class="relative group">
+                  <input type="file" name="foto" id="foto_input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
+                  <div class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 group-hover:border-gray-900 group-hover:text-gray-900 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span id="foto_label" class="text-sm font-medium">Seleccionar Foto</span>
+                  </div>
+                </div>
+                <p class="text-[10px] text-center text-gray-400">La foto se subirá solo al guardar el producto.</p>
               </div>
             </div>
 
@@ -204,14 +219,6 @@ catSelect.addEventListener('change', updateSku);
 if (catSelect.value) updateSku();
 else skuInput.value = 'SKU-00000';
 
-// Image preview
-document.getElementById('imagen_url').addEventListener('input', function() {
-  const el = document.getElementById('imgPreviewEl');
-  const wrap = document.getElementById('imgPreview');
-  if (this.value) { el.src = this.value; wrap.classList.remove('hidden'); }
-  else wrap.classList.add('hidden');
-});
-
 // Margin estimator
 const pc = document.getElementById('precio_compra');
 const pv = document.getElementById('precio_venta');
@@ -230,30 +237,26 @@ if(pc && pv) {
     updateMargen();
 }
 
-// Cloudinary Widget
-const cloudName = "dv7nmkmpm";
-const uploadPreset = "palcus_preset";
-
-const myWidget = cloudinary.createUploadWidget({
-    cloudName: cloudName, 
-    uploadPreset: uploadPreset,
-    sources: ['local', 'url', 'camera'],
-    multiple: false,
-    clientAllowedFormats: ["png", "jpg", "jpeg", "webp"],
-    maxFileSize: 2000000, // 2MB
-    cropping: true,
-    croppingAspectRatio: 1,
-    showSkipCropButton: false
-}, (error, result) => { 
-    if (!error && result && result.event === "success") { 
-        const url = result.info.secure_url;
-        document.getElementById('imagen_url').value = url;
-        document.getElementById('imgPreviewEl').src = url;
-        document.getElementById('imgPreview').classList.remove('hidden');
+// Local image preview
+document.getElementById('foto_input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  const label = document.getElementById('foto_label');
+  const preview = document.getElementById('imgPreview');
+  const previewEl = document.getElementById('imgPreviewEl');
+  
+  if (file) {
+    label.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      previewEl.src = e.target.result;
+      preview.classList.remove('hidden');
     }
+    reader.readAsDataURL(file);
+  } else {
+    label.textContent = 'Seleccionar Foto';
+    preview.classList.add('hidden');
+  }
 });
-
-document.getElementById("upload_widget").addEventListener("click", () => myWidget.open(), false);
 </script>
 </body>
 </html>

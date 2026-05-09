@@ -21,6 +21,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     try {
         $prefijo = trim($_POST['prefijo'] ?? '');
+        // Validate prefijo
+        if (!$prefijo) {
+            echo json_encode(['success' => false, 'error' => 'El prefijo es obligatorio']);
+            exit;
+        }
+        // Ensure prefijo is unique
+        $exists = db()->fetchOne("SELECT id FROM categorias WHERE prefijo = ? AND activo = 1", [$prefijo]);
+        if ($exists) {
+            echo json_encode(['success' => false, 'error' => 'El prefijo ya está en uso']);
+            exit;
+        }
         db()->execute('INSERT INTO categorias (nombre, prefijo, activo) VALUES (?, ?, 1)', [$nombre, $prefijo]);
         $id = db()->lastInsertId();
         echo json_encode(['success' => true, 'id' => $id, 'nombre' => $nombre]);

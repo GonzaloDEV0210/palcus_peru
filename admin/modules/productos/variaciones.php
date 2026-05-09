@@ -22,57 +22,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $action = $_POST['action'] ?? '';
 
   if ($action === 'add') {
-    $talla    = trim($_POST['talla']    ?? '');
-    $color    = trim($_POST['color']    ?? '');
-    $stock    = max(0, (int)$_POST['stock']);
-    $stockMin = max(0, (int)($_POST['stock_minimo'] ?? 5));
+    $tallas    = $_POST['tallas'] ?? [];
+    $color     = trim($_POST['color']     ?? '');
+    $color_hex = trim($_POST['color_hex'] ?? '#000000');
+    $diseno    = trim($_POST['diseno']    ?? 'Estándar');
+    $stock     = (int)($_POST['stock'] ?? 0);
+    $stockMin  = max(0, (int)($_POST['stock_minimo'] ?? 5));
+    $img_url   = '';
 
-    if (!$talla || !$color) { $errors[] = 'La talla y el color son obligatorios.'; }
-    else {
-      $exists = db()->fetchOne(
-        'SELECT id FROM variaciones WHERE producto_id=? AND talla=? AND color=?',
-        [$id, $talla, $color]
-      );
-      if ($exists) {
-        $errors[] = "Ya existe la variación $talla / $color.";
-      } else {
-        db()->execute(
-          'INSERT INTO variaciones (producto_id, talla, color, stock, stock_minimo) VALUES (?,?,?,?,?)',
-          [$id, $talla, $color, $stock, $stockMin]
-        );
-        // Registrar movimiento si stock > 0
-        if ($stock > 0) {
-          $varId = db()->lastInsertId();
-          db()->execute(
-            'INSERT INTO movimientos_inventario
-             (tipo,variacion_id,producto_id,nombre_producto,talla,color,cantidad,stock_antes,stock_despues,motivo,usuario_id)
-             VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-            ['entrada',$varId,$id,$producto['nombre'],$talla,$color,$stock,0,$stock,'Stock inicial',currentUser()['id']]
-          );
+    if (empty($tallas) || !$color) { $errors[] = 'Debes seleccionar al menos una talla y el color.'; }
+    if ($stock < 0) { $errors[] = 'El stock inicial debe ser 0 o más.'; }
+    
+    if (empty($errors)) {
+        // Subir imagen una sola vez para todas las tallas
+        if (!empty($_FILES['foto']['name'])) {
+            $uploadedUrl = cloudinaryUpload($_FILES['foto']);
+            if ($uploadedUrl) { $img_url = $uploadedUrl; }
+            else { $errors[] = 'Error al subir la imagen.'; }
         }
-        $_SESSION['flash'] = ['type'=>'success','msg'=>'Variación agregada.'];
-        header("Location: variaciones.php?id=$id"); exit;
-      }
+
+        if (empty($errors)) {
+            $addedCount = 0;
+            foreach ($tallas as $talla) {
+                $talla = trim($talla);
+                $exists = db()->fetchOne(
+                    'SELECT id FROM variaciones WHERE producto_id=? AND talla=? AND color=? AND diseno=?',
+                    [$id, $talla, $color, $diseno]
+                );
+                if (!$exists) {
+                    db()->execute(
+                        'INSERT INTO variaciones (producto_id, talla, color, color_hex, diseno, imagen_url, stock, stock_minimo) VALUES (?,?,?,?,?,?,?,?)',
+                        [$id, $talla, $color, $color_hex, $diseno, $img_url, $stock, $stockMin]
+                    );
+                    $addedCount++;
+                    // Registrar movimiento si stock > 0
+                    if ($stock > 0) {
+                        $varId = db()->lastInsertId();
+                        db()->execute(
+                            'INSERT INTO movimientos_inventario (tipo,variacion_id,producto_id,nombre_producto,talla,color,diseno,cantidad,stock_antes,stock_despues,motivo,usuario_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+                            ['entrada',$varId,$id,$producto['nombre'],$talla,$color,$diseno,$stock,0,$stock,'Stock inicial',currentUser()['id']]
+                        );
+                    }
+                }
+            }
+            if ($addedCount > 0) {
+                $_SESSION['flash'] = ['type'=>'success','msg'=>"$addedCount variaciones agregadas correctamente."];
+                header("Location: variaciones.php?id=$id"); exit;
+            } else {
+                $errors[] = 'Las variaciones seleccionadas ya existen.';
+            }
+        }
     }
   }
 
   if ($action === 'update') {
-    $varId    = (int)$_POST['var_id'];
-    $stock    = max(0, (int)$_POST['stock']);
-    $stockMin = max(0, (int)($_POST['stock_minimo'] ?? 5));
-    $activo   = isset($_POST['activo']) ? 1 : 0;
-    $old = db()->fetchOne('SELECT stock FROM variaciones WHERE id=? AND producto_id=?', [$varId, $id]);
+    $varId     = (int)$_POST['var_id'];
+    $diseno    = trim($_POST['diseno']    ?? 'Estándar');
+    $color_hex = trim($_POST['color_hex'] ?? '#000000');
+    $stock     = max(0, (int)$_POST['stock']);
+    $stockMin  = max(0, (int)($_POST['stock_minimo'] ?? 5));
+    $activo    = isset($_POST['activo']) ? 1 : 0;
+    
+    $old = db()->fetchOne('SELECT * FROM variaciones WHERE id=? AND producto_id=?', [$varId, $id]);
     if ($old) {
-      db()->execute('UPDATE variaciones SET stock=?,stock_minimo=?,activo=? WHERE id=?',
-        [$stock,$stockMin,$activo,$varId]);
+      $img_url = $old['imagen_url'];
+      if (!empty($_FILES['foto']['name'])) {
+          $uploadedUrl = cloudinaryUpload($_FILES['foto']);
+          if ($uploadedUrl) {
+              // Borrar anterior
+              if (!empty($old['imagen_url'])) {
+                  cloudinaryDestroy($old['imagen_url']);
+              }
+              $img_url = $uploadedUrl;
+          }
+      }
+      db()->execute('UPDATE variaciones SET diseno=?, color_hex=?, imagen_url=?, stock=?, stock_minimo=?, activo=? WHERE id=?',
+        [$diseno,$color_hex,$img_url,$stock,$stockMin,$activo,$varId]);
       // Registro de ajuste si cambió el stock
       if ((int)$old['stock'] !== $stock) {
         $var = db()->fetchOne('SELECT * FROM variaciones WHERE id=?', [$varId]);
         db()->execute(
           'INSERT INTO movimientos_inventario
-           (tipo,variacion_id,producto_id,nombre_producto,talla,color,cantidad,stock_antes,stock_despues,motivo,usuario_id)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-          ['ajuste',$varId,$id,$producto['nombre'],$var['talla'],$var['color'],
+           (tipo,variacion_id,producto_id,nombre_producto,talla,color,diseno,cantidad,stock_antes,stock_despues,motivo,usuario_id)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+          ['ajuste',$varId,$id,$producto['nombre'],$var['talla'],$var['color'],$var['diseno'],
            abs($stock-(int)$old['stock']),(int)$old['stock'],$stock,'Ajuste manual',currentUser()['id']]
         );
       }
@@ -165,8 +198,10 @@ $tallasComunes = ['XS','S','M','L','XL','XXL','XXXL'];
               <table class="w-full text-sm">
                 <thead class="bg-gray-50 text-xs text-gray-500 font-semibold uppercase tracking-wide">
                   <tr>
+                    <th class="px-5 py-3 text-left w-12"></th>
                     <th class="px-5 py-3 text-left">Talla</th>
                     <th class="px-5 py-3 text-left">Color</th>
+                    <th class="px-5 py-3 text-left">Diseño</th>
                     <th class="px-5 py-3 text-center">Stock</th>
                     <th class="px-5 py-3 text-center">Mín.</th>
                     <th class="px-5 py-3 text-center">Estado</th>
@@ -175,9 +210,24 @@ $tallasComunes = ['XS','S','M','L','XL','XXL','XXXL'];
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                   <?php foreach ($variaciones as $v): ?>
-                  <tr class="hover:bg-gray-50" id="row-<?= $v['id'] ?>">
+                  <tr class="hover:bg-gray-50 border-b border-gray-50" id="row-<?= $v['id'] ?>">
+                    <td class="px-5 py-3">
+                      <?php if ($v['imagen_url']): ?>
+                        <img src="<?= e($v['imagen_url']) ?>" class="w-10 h-10 object-cover rounded-lg border border-gray-100" alt=""/>
+                      <?php else: ?>
+                        <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300">
+                           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </div>
+                      <?php endif; ?>
+                    </td>
                     <td class="px-5 py-3 font-semibold text-gray-900"><?= e($v['talla']) ?></td>
-                    <td class="px-5 py-3 text-gray-700"><?= e($v['color']) ?></td>
+                    <td class="px-5 py-3 text-gray-700">
+                      <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full border border-gray-200" style="background-color: <?= e($v['color_hex']) ?>;"></span>
+                        <?= e($v['color']) ?>
+                      </div>
+                    </td>
+                    <td class="px-5 py-3 text-gray-600 italic"><?= e($v['diseno']) ?></td>
                     <td class="px-5 py-3 text-center">
                       <span class="font-bold <?= $v['stock']==0?'text-red-500':($v['stock']<=$v['stock_minimo']?'text-amber-500':'text-gray-900') ?>">
                         <?= $v['stock'] ?>
@@ -219,24 +269,50 @@ $tallasComunes = ['XS','S','M','L','XL','XXL','XXXL'];
         <div class="space-y-5">
           <div class="bg-white rounded-2xl border border-gray-200 p-5">
             <h3 class="font-semibold text-gray-900 mb-4">Agregar variación</h3>
-            <form method="POST" class="space-y-3">
+            <form method="POST" enctype="multipart/form-data" class="space-y-3">
               <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>"/>
               <input type="hidden" name="action" value="add"/>
+              <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Talla *</label>
-                <input list="tallasList" name="talla" class="form-input" placeholder="M, L, XL..." required/>
-                <datalist id="tallasList">
-                  <?php foreach ($tallasComunes as $t): ?><option value="<?= $t ?>"/><?php endforeach; ?>
-                </datalist>
+                <label class="block text-xs font-semibold text-gray-600 mb-2">Tallas <span class="text-red-500">*</span></label>
+                <div class="flex flex-wrap gap-1.5">
+                  <?php foreach ($tallasComunes as $t): ?>
+                  <label class="group relative inline-flex items-center justify-center p-0.5 rounded-lg border border-gray-200 bg-white cursor-pointer hover:border-gray-900 transition-all has-[:checked]:bg-gray-900 has-[:checked]:border-gray-900 has-[:checked]:text-white">
+                    <input type="checkbox" name="tallas[]" value="<?= $t ?>" class="sr-only"/>
+                    <span class="px-2.5 py-1 text-[10px] font-bold uppercase"><?= $t ?></span>
+                  </label>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">Color *</label>
+                  <div class="flex gap-1">
+                    <input name="color" id="color_name_new" class="form-input" placeholder="Nombre del color..." required/>
+                    <input type="color" name="color_hex" id="color_hex_new" value="#000000" class="w-10 h-9 p-0 border-0 bg-transparent cursor-pointer rounded-lg overflow-hidden"/>
+                  </div>
+                </div>
               </div>
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Color *</label>
-                <input name="color" class="form-input" placeholder="Blanco, Negro, Azul..." required/>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Diseño gráfico (Ej: Estrella, Corazón)</label>
+                <input name="diseno" class="form-input" placeholder="Ej: Estrella, Bordado, Estándar..." value=""/>
               </div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Imagen de la variante</label>
+                <div class="flex items-center gap-3">
+                   <div id="newVarPreview" class="hidden">
+                      <img id="newVarPreviewImg" src="" class="w-12 h-12 object-cover rounded-lg border border-gray-200"/>
+                   </div>
+                   <div class="relative flex-1 group">
+                      <input type="file" name="foto" id="foto_new" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
+                      <div class="flex items-center justify-center gap-2 py-2 border border-gray-200 rounded-xl text-[10px] text-gray-500 group-hover:border-gray-900 group-hover:text-gray-900 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span id="label_new">Elegir Foto</span>
+                      </div>
+                   </div>
+                </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs font-semibold text-gray-600 mb-1">Stock inicial</label>
-                  <input name="stock" type="number" min="0" value="0" class="form-input"/>
+                  <label class="block text-xs font-semibold text-gray-600 mb-1">Stock inicial <span class="text-red-500">*</span></label>
+                  <input name="stock" type="number" min="0" value="0" class="form-input" required/>
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">Stock mínimo</label>
@@ -259,7 +335,7 @@ $tallasComunes = ['XS','S','M','L','XL','XXL','XXXL'];
       <div id="editModal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl">
           <h3 class="font-bold text-gray-900 mb-4">Editar variación</h3>
-          <form method="POST" class="space-y-3">
+          <form method="POST" enctype="multipart/form-data" class="space-y-3">
             <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>"/>
             <input type="hidden" name="action" value="update"/>
             <input type="hidden" name="var_id" id="editVarId"/>
@@ -270,7 +346,29 @@ $tallasComunes = ['XS','S','M','L','XL','XXL','XXXL'];
               </div>
               <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Color</label>
-                <input id="editColor" class="form-input bg-gray-100" readonly/>
+                <div class="flex gap-1">
+                  <input id="editColor" class="form-input bg-gray-100" readonly/>
+                  <input type="color" name="color_hex" id="editColorHex" class="w-10 h-9 p-0 border-0 bg-transparent cursor-pointer rounded-lg overflow-hidden"/>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Diseño gráfico</label>
+              <input name="diseno" id="editDiseno" class="form-input" required/>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-600 mb-1">Imagen de la variante</label>
+              <div class="flex items-center gap-3">
+                 <div id="editVarPreview">
+                    <img id="editVarPreviewImg" src="" class="w-12 h-12 object-cover rounded-lg border border-gray-200"/>
+                 </div>
+                 <div class="relative flex-1 group">
+                    <input type="file" name="foto" id="foto_edit" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
+                    <div class="flex items-center justify-center gap-2 py-2 border border-gray-200 rounded-xl text-[10px] text-gray-500 group-hover:border-gray-900 group-hover:text-gray-900 transition-all">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                      <span id="label_edit">Cambiar Foto</span>
+                    </div>
+                 </div>
               </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
@@ -304,15 +402,79 @@ function openEdit(v) {
   document.getElementById('editVarId').value   = v.id;
   document.getElementById('editTalla').value   = v.talla;
   document.getElementById('editColor').value   = v.color;
+  document.getElementById('editColorHex').value = v.color_hex || '#000000';
+  document.getElementById('editDiseno').value   = v.diseno;
   document.getElementById('editStock').value   = v.stock;
   document.getElementById('editStockMin').value= v.stock_minimo;
   document.getElementById('editActivo').checked= v.activo == '1';
+  
+  const imgInput = document.getElementById('edit_imagen_url');
+  const imgEl = document.getElementById('editVarPreviewImg');
+  const imgWrap = document.getElementById('editVarPreview');
+  imgInput.value = v.imagen_url || '';
+  if (v.imagen_url) {
+    imgEl.src = v.imagen_url;
+    imgWrap.classList.remove('hidden');
+  } else {
+    imgEl.src = '';
+    imgWrap.classList.add('hidden');
+  }
+
   document.getElementById('editModal').classList.remove('hidden');
 }
 function closeEdit() { document.getElementById('editModal').classList.add('hidden'); }
 document.getElementById('editModal').addEventListener('click', function(e) {
   if (e.target === this) closeEdit();
 });
+
+// Local image previews
+function setupPreview(inputId, labelId, previewWrapId, previewImgId, defaultLabel) {
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  input.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const label = document.getElementById(labelId);
+    const preview = document.getElementById(previewWrapId);
+    const previewEl = document.getElementById(previewImgId);
+    if (file) {
+      label.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewEl.src = e.target.result;
+        preview.classList.remove('hidden');
+      }
+      reader.readAsDataURL(file);
+    } else {
+      label.textContent = defaultLabel;
+    }
+  });
+}
+setupPreview('foto_new', 'label_new', 'newVarPreview', 'newVarPreviewImg', 'Elegir Foto');
+setupPreview('foto_edit', 'label_edit', 'editVarPreview', 'editVarPreviewImg', 'Cambiar Foto');
+
+// Color Sync Logic
+const colorNames = {
+  '#000000': 'Negro', '#ffffff': 'Blanco', '#ff0000': 'Rojo', '#00ff00': 'Verde',
+  '#0000ff': 'Azul', '#ffff00': 'Amarillo', '#ff00ff': 'Fucsia', '#00ffff': 'Cian',
+  '#808080': 'Gris', '#800000': 'Granate', '#808000': 'Oliva', '#008000': 'Verde Oscuro',
+  '#800080': 'Púrpura', '#008080': 'Teal', '#000080': 'Azul Marino', '#ffa500': 'Naranja',
+  '#a52a2a': 'Marrón', '#f0e68c': 'Mostaza', '#add8e6': 'Azul Claro', '#90ee90': 'Verde Claro'
+};
+
+function setupColorSync(pickerId, nameId) {
+  const picker = document.getElementById(pickerId);
+  const nameInput = document.getElementById(nameId);
+  if(!picker || !nameInput) return;
+  
+  picker.addEventListener('input', function() {
+    const hex = this.value.toLowerCase();
+    // Si el campo de nombre está vacío o tiene un hexadecimal previo, lo actualizamos
+    if (!nameInput.value || nameInput.value.startsWith('#')) {
+      nameInput.value = colorNames[hex] || hex.toUpperCase();
+    }
+  });
+}
+setupColorSync('color_hex_new', 'color_name_new');
 </script>
 </body>
 </html>

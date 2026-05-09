@@ -19,13 +19,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
     if ($action === 'save') {
+
         $id   = (int)($_POST['id'] ?? 0);
         $nom  = trim($_POST['nombre'] ?? '');
         $pref = trim($_POST['prefijo'] ?? '');
         $desc = trim($_POST['descripcion'] ?? '');
         
+        // Validate name and prefijo
         if (!$nom) { $errors[] = 'El nombre es obligatorio.'; }
-        else {
+        if (!$pref) { $errors[] = 'El prefijo es obligatorio.'; }
+        // Check unique prefijo
+        if ($pref) {
+            $exists = db()->fetchOne('SELECT id FROM categorias WHERE prefijo = ? AND activo = 1' . ($id ? ' AND id != ?' : ''), $id ? [$pref, $id] : [$pref]);
+            if ($exists) { $errors[] = 'El prefijo ya está en uso.'; }
+        }
+        if (empty($errors)) {
             if ($id > 0) {
                 db()->execute('UPDATE categorias SET nombre=?, prefijo=?, descripcion=? WHERE id=?', [$nom, $pref, $desc, $id]);
                 $_SESSION['flash'] = ['type'=>'success', 'msg'=>'Categoría actualizada.'];
@@ -35,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             header('Location: index.php'); exit;
         }
+
     }
     
     if ($action === 'delete') {
@@ -85,8 +94,8 @@ $categorias = db()->fetchAll('SELECT * FROM categorias WHERE activo=1 ORDER BY n
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wide">
-              <th class="px-5 py-3 text-left">Nombre</th>
               <th class="px-5 py-3 text-left w-20">Prefijo</th>
+              <th class="px-5 py-3 text-left">Nombre</th>
               <th class="px-5 py-3 text-left">Descripción</th>
               <th class="px-5 py-3 text-center">Acciones</th>
             </tr>
@@ -97,8 +106,8 @@ $categorias = db()->fetchAll('SELECT * FROM categorias WHERE activo=1 ORDER BY n
             <?php else: ?>
             <?php foreach ($categorias as $c): ?>
             <tr class="hover:bg-gray-50 transition-colors">
-              <td class="px-5 py-3 font-medium text-gray-900"><?= e($c['nombre']) ?></td>
               <td class="px-5 py-3 text-gray-600 font-mono text-xs uppercase"><?= e($c['prefijo'] ?: '—') ?></td>
+              <td class="px-5 py-3 font-medium text-gray-900"><?= e($c['nombre']) ?></td>
               <td class="px-5 py-3 text-gray-500"><?= e($c['descripcion'] ?: '—') ?></td>
               <td class="px-5 py-3">
                 <div class="flex justify-center gap-1">
