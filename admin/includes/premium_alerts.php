@@ -172,8 +172,50 @@ window.PalCus = {
                 setTimeout(() => toast.remove(), 300);
             }
         }, 5000);
+    },
+
+    loading: function(show = true) {
+        let overlay = document.getElementById('pcLoadingOverlay');
+        if (!show) {
+            if (overlay) {
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 300);
+            }
+            return;
+        }
+        if (overlay) return;
+
+        overlay = document.createElement('div');
+        overlay.id = 'pcLoadingOverlay';
+        overlay.className = 'pc-alert-overlay';
+        overlay.style.background = 'rgba(255,255,255,0.9)';
+        overlay.style.backdropFilter = 'blur(10px)';
+        overlay.innerHTML = `
+            <div class="flex flex-col items-center gap-5">
+                <div class="relative w-16 h-16">
+                    <div class="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs font-black text-gray-900 uppercase tracking-[0.3em] mb-1">PalCus Cloud</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-pulse">Sincronizando cambios...</p>
+                </div>
+            </div>
+        `;
+        document.getElementById('pcAlertRoot').appendChild(overlay);
     }
 };
+
+// Global Loading trigger on form submit
+document.addEventListener('submit', (e) => {
+    const form = e.target.closest('form');
+    if (!form) return;
+    
+    // Si el formulario ya tiene un loading manual o es preventDefault, no mostrar
+    if (form.getAttribute('data-no-loading')) return;
+    
+    window.PalCus.loading(true);
+});
 
 // Global confirm override for PalCus
 document.addEventListener('click', async (e) => {

@@ -3,10 +3,18 @@
   const I = window.PalcusIcons;
   const U = window.PalcusUtil;
   const PHONE = '51981293422';
+  const API_BRANDING = 'admin/api/get_branding.php';
 
   let navLinks = [
     { href: 'index.html', label: 'Inicio' },
   ];
+
+  window.PalcusBranding = {
+    url_icono: 'preloader-icon.png',
+    url_logo: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/v1778354037/vjypdweg16udzxoptdxz.png',
+    url_hero: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/hero-banner-mujer.jpg',
+    nombre_tienda: 'PalCus Perú'
+  };
 
   function updateNavLinks() {
     navLinks = [
@@ -52,7 +60,7 @@
       <div style="max-width:80rem;margin:0 auto;padding:0 1rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;height:4rem;">
           <button id="mobileMenuBtn" style="background:none;border:none;padding:0.5rem;display:none;" aria-label="Menú" class="mobile-only">${I.menu()}</button>
-          <a href="index.html" style="flex-shrink:0;"><img src="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/logo_palcus.png" alt="PalCus Perú" style="height:3rem;width:auto;"></a>
+          <a href="index.html" style="flex-shrink:0;"><img id="main-logo" src="${window.PalcusBranding.url_logo}" alt="${window.PalcusBranding.nombre_tienda}" style="height:3rem;width:auto;"></a>
           <nav class="desktop-nav" style="display:flex;align-items:center;gap:2rem;">${navHTML}</nav>
           <div style="display:flex;align-items:center;gap:0.75rem;">
             <button id="searchBtn" style="background:none;border:none;padding:0.5rem;" aria-label="Buscar">${I.search()}</button>
@@ -86,7 +94,7 @@
       <div style="max-width:80rem;margin:0 auto;padding:4rem 1rem;">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2.5rem;">
           <div>
-            <img src="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/logo_palcus.png" alt="PalCus Perú" class="invert" style="height:3.5rem;width:auto;margin-bottom:1rem;">
+            <img id="footer-logo" src="${window.PalcusBranding.url_logo}" alt="${window.PalcusBranding.nombre_tienda}" class="invert" style="height:3rem;width:auto;margin-bottom:1.5rem;">
             <p style="font-size:0.875rem;opacity:0.7;line-height:1.6;">Moda casual exclusiva para mujer con 100% algodón peruano. Calidad, confort y estilo en cada prenda.</p>
           </div>
           <div>
@@ -328,6 +336,17 @@
     if (footerHost) footerHost.innerHTML = buildFooter();
     if (floatHost) floatHost.innerHTML = buildFloating();
 
+    // Inyección universal del preloader si no existe
+    if (!document.getElementById('global-preloader')) {
+      const pre = document.createElement('div');
+      pre.id = 'global-preloader';
+      pre.innerHTML = `
+        <img src="preloader-icon.png" alt="" class="preloader-img" style="filter:brightness(0)!important;">
+        <div class="preloader-bar"></div>
+      `;
+      document.body.prepend(pre);
+    }
+
     document.getElementById('cartBtn')?.addEventListener('click', openCart);
     document.getElementById('searchBtn')?.addEventListener('click', () => { searchOpen = true; renderSearch(); });
     document.getElementById('faqBtn')?.addEventListener('click', () => { chatOpen = !chatOpen; renderChat(); });
@@ -337,14 +356,108 @@
     });
 
     window.PalcusCart.update();
+    fetchBranding();
+
+    const pre = document.getElementById('global-preloader');
+    if (pre) {
+      const img = pre.querySelector('img');
+      if (img) {
+        img.style.filter = 'brightness(0)';
+        if (window.PalcusBranding.url_icono) {
+            const newSrc = `${window.PalcusBranding.url_icono}?v=1.3`;
+            if (img.src !== newSrc) {
+                img.style.opacity = '0';
+                img.onload = () => img.style.opacity = '1';
+                img.src = newSrc;
+            }
+        }
+      }
+    }
 
     setTimeout(() => {
       const p = document.getElementById('global-preloader');
       if(p) {
         p.classList.add('fade-out');
-        setTimeout(() => p.remove(), 500);
+        setTimeout(() => p.remove(), 800);
       }
-    }, 1300);
+    }, 1500);
+  }
+
+  async function fetchBranding() {
+    try {
+      const resp = await fetch(API_BRANDING);
+      const data = await resp.json();
+      
+      // Actualizar variable global para re-renders
+      window.PalcusBranding = { ...window.PalcusBranding, ...data };
+
+      // Actualizar Logos en el DOM actual
+      const logoHeader = document.getElementById('main-logo');
+      const logoFooter = document.getElementById('footer-logo');
+      if (logoHeader && data.url_logo) logoHeader.src = data.url_logo;
+      if (logoFooter && data.url_logo) logoFooter.src = data.url_logo;
+
+      // Actualizar Favicon adaptable
+      if (data.url_icono) {
+        setupAdaptiveFavicon(data.url_icono);
+      }
+
+      // Actualizar Preloader
+      const preImg = document.querySelector('.preloader-img');
+      if (preImg && data.url_icono) preImg.src = data.url_icono;
+
+      // Actualizar Hero (si estamos en index)
+      const heroImg = document.getElementById('main-hero');
+      if (heroImg && data.url_hero) heroImg.src = data.url_hero;
+
+    } catch (e) { console.error('Error loading branding:', e); }
+  }
+
+  function setupAdaptiveFavicon(url) {
+    const favicon = document.querySelector('link[rel="icon"]');
+    if (!favicon) return;
+
+    const update = () => {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      // Para el favicon, si es tema oscuro, intentamos invertirlo si es necesario
+      // O simplemente aplicamos una lógica de filtro vía Canvas si es posible
+      applyAdaptiveIcon(url, isDark, (newUrl) => {
+        favicon.href = newUrl;
+      });
+      // (Eliminada la inversión del preloader para mantenerlo negro siempre sobre blanco)
+    };
+
+    update();
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', update);
+  }
+
+  function applyAdaptiveIcon(url, isDark, callback) {
+    if (!url) return;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      
+      if (isDark) {
+        // Invertir colores para tema oscuro (Negro -> Blanco)
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = 255 - data[i];     // R
+          data[i+1] = 255 - data[i+1]; // G
+          data[i+2] = 255 - data[i+2]; // B
+        }
+        ctx.putImageData(imageData, 0, 0);
+      }
+      
+      callback(canvas.toDataURL());
+    };
+    img.onerror = () => callback(url); // Fallback al original
+    img.src = url;
   }
 
   window.PalcusLayout = { renderCart, openCart, closeCart };
@@ -352,7 +465,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  // Re-renderizar cuando los datos de Firebase lleguen
+  // Re-renderizar cuando los datos del catálogo estén listos
   window.addEventListener('palcus-data-ready', () => {
     updateNavLinks();
     const headerHost = document.getElementById('site-header');

@@ -65,8 +65,8 @@ $groupLabels = [
   <!-- Logo -->
   <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-800">
     <img
-      src="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo.png"
-      alt="PalCus Perú"
+      src="<?= getConfig('url_logo') ?: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo.png' ?>"
+      alt="<?= e(getConfig('nombre_tienda') ?: 'PalCus') ?>"
       class="w-9 h-9 object-contain shrink-0"
       style="filter: brightness(0) invert(1);"
     />

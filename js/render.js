@@ -16,7 +16,7 @@
     // Lógica de Etiquetas Automáticas
     let badgeHTML = '';
     const now = new Date();
-    const created = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt || now);
+    const created = new Date(p.createdAt || now);
     const diffDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
     
     if (diffDays <= 15) {

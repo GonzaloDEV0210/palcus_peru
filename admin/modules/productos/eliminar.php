@@ -15,7 +15,7 @@ $p  = db()->fetchOne('SELECT * FROM productos WHERE id=?', [$id]);
 if (!$p) { header('Location: index.php'); exit; }
 
 // 1. Obtener todas las imágenes de las variaciones vinculadas
-$vars = db()->fetchAll('SELECT imagen_url FROM variaciones WHERE producto_id=?', [$id]);
+$vars = db()->fetchAll('SELECT imagen_url FROM producto_imagenes WHERE producto_id=?', [$id]);
 
 // 2. Borrar imágenes de Cloudinary (Variaciones)
 foreach ($vars as $v) {

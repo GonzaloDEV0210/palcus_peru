@@ -14,8 +14,8 @@ $lowStockCount = count(checkLowStock());
     </button>
     <!-- Logo visible only on mobile (sidebar hidden) -->
     <img
-      src="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo.png"
-      alt="PalCus"
+      src="<?= getConfig('url_logo') ?: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo.png' ?>"
+      alt="<?= e(getConfig('nombre_tienda') ?: 'PalCus') ?>"
       class="w-7 h-7 object-contain lg:hidden"
       style="filter: brightness(0);"
     />

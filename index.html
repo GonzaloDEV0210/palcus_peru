@@ -7,20 +7,21 @@
   <meta name="description" content="Ropa casual exclusiva para mujer confeccionada con 100% algodón peruano." />
   <meta property="og:title" content="PalCus Perú — Moda Casual 100% Algodón Peruano" />
   <meta property="og:description" content="Ropa casual exclusiva para mujer confeccionada con 100% algodón peruano." />
-  <link rel="icon" href="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo_white.png" />
+  <link rel="icon" href="https://res.cloudinary.com/dv7nmkmpm/image/upload/v1778353673/m6r937lmd6s6sbeo6v7a.webp" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
   <div id="global-preloader">
-    <img src="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo.png" alt="PalCus Perú" class="preloader-img">
+    <img src="preloader-icon.png" alt="" class="preloader-img" style="filter:brightness(0);">
+    <div class="preloader-bar"></div>
   </div>
   <div id="site-header"></div>
 
   <main>
     <!-- Hero -->
     <section style="position:relative;height:85vh;min-height:600px;overflow:hidden;">
-      <img src="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/hero-banner-mujer.jpg" alt="PalCus Perú" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;">
+      <img id="main-hero" src="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/hero-banner-mujer.jpg" alt="PalCus Perú" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;">
       <div style="position:absolute;inset:0;background:oklch(0.13 0 0 / 0.4);"></div>
       <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 1rem;">
         <div>
@@ -116,7 +117,7 @@
   <script src="js/icons.js"></script>
   <script src="js/cart.js"></script>
   <script src="js/render.js?v=1.1"></script>
-  <script src="js/layout.js"></script>
+  <script src="js/layout.js?v=1.3"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       // Inicializar datos directamente (ahora desde MySQL)

@@ -28,7 +28,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     'activo'        => isset($_POST['activo']) ? 1 : 0,
   ];
 
-    $d['imagen_url'] = $p['imagen_url'];
+  $d['imagen_url'] = $p['imagen_url'];
+  
+  // Procesar subida de imagen principal si existe
+  if (!empty($_FILES['foto']['tmp_name'])) {
+      $url = cloudinaryUpload($_FILES['foto']);
+      if ($url) {
+          // Eliminar imagen anterior de Cloudinary
+          if (!empty($p['imagen_url'])) {
+              cloudinaryDestroy($p['imagen_url']);
+          }
+          $d['imagen_url'] = $url;
+      }
+  }
   if (!$d['nombre'])         $errors[] = 'El nombre es obligatorio.';
   if (!$d['categoria_id'])   $errors[] = 'La categoría es obligatoria.';
   if ($d['precio_compra']<=0) $errors[] = 'El precio de compra es obligatorio.';
@@ -59,7 +71,7 @@ $categorias = db()->fetchAll('SELECT id, nombre FROM categorias WHERE activo=1 O
 <head>
   <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title><?= $pageTitle ?> — PalCus Admin</title>
-  <link rel="icon" href="https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo.png"/>
+  <link rel="icon" href="<?= getConfig('url_icono') ?: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo.png' ?>"/>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>* {font-family:'Inter',sans-serif;}
@@ -141,6 +153,25 @@ $categorias = db()->fetchAll('SELECT id, nombre FROM categorias WHERE activo=1 O
                   <label class="form-label">Precio de venta (S/) <span class="text-red-500">*</span></label>
                   <input name="precio_venta" type="number" step="0.01" min="0.01"
                     class="form-input" value="<?= number_format((float)$p['precio_venta'],2, '.', '') ?>" required/>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-200 p-5">
+              <h3 class="font-semibold text-gray-900 mb-4">Imagen Principal</h3>
+              <div class="space-y-4">
+                <div id="imgPreview" class="<?= $p['imagen_url'] ? '' : 'hidden' ?> relative group">
+                  <img id="imgPreviewEl" src="<?= e($p['imagen_url']) ?>" class="w-full aspect-[3/4] object-cover rounded-xl border border-gray-100 shadow-sm" alt="Vista previa"/>
+                  <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                    <p class="text-white text-[10px] font-bold uppercase tracking-widest">Nueva imagen</p>
+                  </div>
+                </div>
+                <div class="relative group">
+                  <input type="file" name="foto" id="foto_input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
+                  <div class="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-100 rounded-xl text-[10px] font-bold text-gray-400 group-hover:border-gray-900 group-hover:text-gray-900 transition-all uppercase tracking-widest">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span id="foto_label">Cambiar Foto</span>
+                  </div>
                 </div>
               </div>
             </div>
