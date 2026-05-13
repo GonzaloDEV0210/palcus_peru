@@ -15,6 +15,7 @@ window.PalcusUtil = {
       if (res.success) {
         window.PALCUS_PRODUCTS = res.products;
         window.PALCUS_CATEGORY_LABELS = res.categories;
+        window.PALCUS_CATEGORIES_LIST = res.categoriesList;
         window.PalcusDbReady = true;
         console.log("Datos cargados desde MySQL:", window.PALCUS_PRODUCTS.length, "productos");
         window.dispatchEvent(new CustomEvent('palcus-data-ready'));

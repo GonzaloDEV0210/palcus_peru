@@ -4,31 +4,7 @@
 $user = currentUser();
 $role = currentRole();
 
-$nav = [
-  'principal' => [
-    ['icon' => 'home',      'label' => 'Dashboard',   'href' => 'index.php',              'page' => 'dashboard', 'roles' => ['admin','vendedor','almacenero']],
-  ],
-  'ventas' => [
-    ['icon' => 'cart',      'label' => 'Ventas',       'href' => 'modules/ventas/',        'page' => 'ventas',    'roles' => ['admin','vendedor']],
-    ['icon' => 'users',     'label' => 'Clientes',     'href' => 'modules/clientes/',      'page' => 'clientes',  'roles' => ['admin','vendedor']],
-  ],
-  'inventario' => [
-    ['icon' => 'package',   'label' => 'Productos',    'href' => 'modules/productos/',     'page' => 'productos', 'roles' => ['admin','almacenero']],
-    ['icon' => 'layers',    'label' => 'Inventario',   'href' => 'modules/inventario/',    'page' => 'inventario','roles' => ['admin','almacenero']],
-    ['icon' => 'truck',     'label' => 'Proveedores',  'href' => 'modules/proveedores/',   'page' => 'proveedores','roles' => ['admin','almacenero']],
-    ['icon' => 'tag',       'label' => 'Categorías',   'href' => 'modules/categorias/',    'page' => 'categorias', 'roles' => ['admin','almacenero']],
-    ['icon' => 'credit',    'label' => 'Gastos',       'href' => 'modules/gastos/',        'page' => 'gastos',    'roles' => ['admin']],
-  ],
-  'gestión' => [
-    ['icon' => 'chart',     'label' => 'Reportes',     'href' => 'modules/reportes/',      'page' => 'reportes',  'roles' => ['admin']],
-    ['icon' => 'file',      'label' => 'Documentos',   'href' => 'modules/documentos/',    'page' => 'documentos','roles' => ['admin']],
-    ['icon' => 'calendar',  'label' => 'Calendario',   'href' => 'modules/calendario/',    'page' => 'calendario','roles' => ['admin','vendedor']],
-  ],
-  'sistema' => [
-    ['icon' => 'cog',       'label' => 'Configuración','href' => 'modules/configuracion/', 'page' => 'configuracion','roles' => ['admin']],
-    ['icon' => 'shield',    'label' => 'Usuarios',     'href' => 'modules/usuarios/',      'page' => 'usuarios',  'roles' => ['admin']],
-  ],
-];
+
 
 function sidebarIcon(string $name): string {
   $icons = [

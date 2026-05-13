@@ -17,13 +17,25 @@
   };
 
   function updateNavLinks() {
+    const list = window.PALCUS_CATEGORIES_LIST || [];
+    
+    // Función para construir árbol recursivo
+    const buildTree = (parentId = null) => {
+      return list
+        .filter(c => (parentId === null ? (!c.parent_id || c.parent_id == "0") : c.parent_id == parentId))
+        .map(c => ({
+          href: `catalogo.html?categoria=${c.slug}`,
+          label: c.name,
+          category: c.slug,
+          id: c.id,
+          subcategories: buildTree(c.id)
+        }));
+    };
+
+    const tree = buildTree();
     navLinks = [
       { href: 'index.html', label: 'Inicio' },
-      ...Object.entries(window.PALCUS_CATEGORY_LABELS).map(([slug, name]) => ({
-        href: `catalogo.html?categoria=${slug}`,
-        label: name,
-        category: slug
-      }))
+      ...tree
     ];
   }
 
@@ -31,24 +43,46 @@
 
   function buildHeader() {
     const navHTML = navLinks.map(link => {
-      const types = link.category ? U.typesByCategory(link.category) : [];
       const active = currentPage === link.href ? 'active' : '';
-      const hasDrop = link.category && types.length > 0;
-      const dropdown = hasDrop ? `
-        <div class="dropdown">
-          <div class="dropdown-card">
-            <p style="padding:0 1.25rem 0.5rem;font-size:0.625rem;text-transform:uppercase;letter-spacing:0.2em;color:var(--muted-foreground);font-family:'Syne',sans-serif;font-weight:600;">Categorías</p>
-            ${types.filter(t => t && window.PALCUS_TYPE_LABELS[t]).map(t => `<a href="${link.href}">${window.PALCUS_TYPE_LABELS[t]}</a>`).join('')}
-            <div style="border-top:1px solid var(--border);margin-top:0.5rem;padding:0.5rem 1.25rem 0;">
-              <a href="${link.href}" style="font-size:0.625rem;text-transform:uppercase;letter-spacing:0.15em;font-weight:600;color:var(--foreground);padding:0;">Ver todo →</a>
+      const hasSub = link.subcategories && link.subcategories.length > 0;
+      
+      let dropdown = '';
+      if (hasSub) {
+        // Renderizado multinivel (Nivel 1 y Nivel 2 dentro del dropdown)
+        const groupsHTML = link.subcategories.map(sub => {
+          const hasThirdLevel = sub.subcategories && sub.subcategories.length > 0;
+          return `
+            <div style="min-width:140px;">
+              <a href="${sub.href}" style="font-weight:700;color:var(--foreground);padding:0 0 0.5rem 0;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;display:block;">${sub.label}</a>
+              ${hasThirdLevel ? `
+                <div style="display:flex;flex-direction:column;gap:0.4rem;padding-left:0.25rem;border-left:1px solid var(--border);">
+                  ${sub.subcategories.map(third => `
+                    <a href="${third.href}" style="font-size:0.75rem;color:var(--muted-foreground);padding:0;display:block;white-space:nowrap;" class="hover:text-foreground transition-colors">${third.label}</a>
+                  `).join('')}
+                </div>
+              ` : ''}
             </div>
-          </div>
-        </div>` : '';
+          `;
+        }).join('');
+
+        dropdown = `
+          <div class="dropdown" style="min-width:auto;width:max-content;max-width:80vw;">
+            <div class="dropdown-card" style="display:flex;gap:2.5rem;padding:1.5rem 2rem;">
+              ${groupsHTML}
+            </div>
+          </div>`;
+      }
+
       return `<div class="nav-group" style="position:relative;">
-        <a href="${link.href}" class="nav-link ${active}">${link.label}${link.category ? I.chevronDown(12) : ''}</a>
+        <a href="${link.href}" class="nav-link ${active}">${link.label}${hasSub ? I.chevronDown(12) : ''}</a>
         ${dropdown}
       </div>`;
     }).join('');
+    
+    // Si no hay categorías aún y no estamos en Inicio, mostrar un indicador de carga o nada
+    const navHTMLFinal = navLinks.length > 1 ? navHTML : `
+      <div class="nav-group"><a href="index.html" class="nav-link ${currentPage==='index.html'?'active':''}">Inicio</a></div>
+    `;
 
     return `
     <header style="position:sticky;top:0;z-index:40;background:oklch(1 0 0 / 0.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);">
@@ -61,7 +95,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;height:4rem;">
           <button id="mobileMenuBtn" style="background:none;border:none;padding:0.5rem;display:none;" aria-label="Menú" class="mobile-only">${I.menu()}</button>
           <a href="index.html" style="flex-shrink:0;"><img id="main-logo" src="${window.PalcusBranding.url_logo}" alt="${window.PalcusBranding.nombre_tienda}" style="height:3rem;width:auto;"></a>
-          <nav class="desktop-nav" style="display:flex;align-items:center;gap:2rem;">${navHTML}</nav>
+          <nav class="desktop-nav" style="display:flex;align-items:center;gap:2rem;">${navHTMLFinal}</nav>
           <div style="display:flex;align-items:center;gap:0.75rem;">
             <button id="searchBtn" style="background:none;border:none;padding:0.5rem;" aria-label="Buscar">${I.search()}</button>
             <button id="cartBtn" style="background:none;border:none;padding:0.5rem;position:relative;" aria-label="Carrito">
@@ -71,8 +105,16 @@
           </div>
         </div>
       </div>
-      <div id="mobileMenu" style="display:none;border-top:1px solid var(--border);background:var(--background);padding:1rem;">
-        ${navLinks.map(l => `<a href="${l.href}" style="display:block;font-size:0.875rem;text-transform:uppercase;letter-spacing:0.15em;font-weight:500;padding:0.5rem 0;color:${currentPage===l.href?'var(--foreground)':'var(--muted-foreground)'};">${l.label}</a>`).join('')}
+      <div id="mobileMenu" style="display:none;border-top:1px solid var(--border);background:var(--background);padding:1rem;max-height:80vh;overflow-y:auto;">
+        ${navLinks.map(l => `
+          <a href="${l.href}" style="display:block;font-size:0.875rem;text-transform:uppercase;letter-spacing:0.15em;font-weight:600;padding:0.75rem 0;color:${currentPage===l.href?'var(--foreground)':'var(--muted-foreground)'};border-bottom:1px solid var(--border);">${l.label}</a>
+          ${l.subcategories ? l.subcategories.map(s => `
+            <a href="${s.href}" style="display:block;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;padding:0.5rem 0 0.5rem 1.25rem;color:var(--foreground);">${s.label}</a>
+            ${s.subcategories ? s.subcategories.map(t => `
+              <a href="${t.href}" style="display:block;font-size:0.75rem;font-weight:400;padding:0.4rem 0 0.4rem 2.5rem;color:var(--muted-foreground);">${t.label}</a>
+            `).join('') : ''}
+          `).join('') : ''}
+        `).join('')}
       </div>
     </header>
     <style>
@@ -357,6 +399,13 @@
 
     window.PalcusCart.update();
     fetchBranding();
+
+    // NUEVO: Si los datos ya están listos (ej: carga rápida en local), pintar el nav de una vez
+    if (window.PalcusDbReady) {
+      updateNavLinks();
+      if (headerHost) headerHost.innerHTML = buildHeader();
+      if (footerHost) footerHost.innerHTML = buildFooter();
+    }
 
     const pre = document.getElementById('global-preloader');
     if (pre) {
