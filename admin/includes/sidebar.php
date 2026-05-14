@@ -4,6 +4,16 @@
 $user = currentUser();
 $role = currentRole();
 
+// Definición del menú de navegación (evita error de variable indefinida)
+$nav = [
+  'principal' => [
+    ['page' => 'dashboard', 'label' => 'Dashboard', 'href' => 'index.php', 'icon' => 'home', 'roles' => ['admin', 'editor']],
+  ],
+  'configuracion' => [
+    ['page' => 'configuracion_sistema', 'label' => 'Configuración Sistema', 'href' => 'modules/configuracion/', 'icon' => 'cog', 'roles' => ['admin']],
+  ]
+];
+
 
 
 function sidebarIcon(string $name): string {
@@ -31,27 +41,28 @@ $groupLabels = [
   'inventario'=> 'Inventario',
   'gestión'   => 'Gestión',
   'sistema'   => 'Sistema',
+  'configuracion' => 'Configuración',
 ];
 ?>
 
 <aside id="sidebar"
-  class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 flex flex-col transition-transform duration-300 lg:translate-x-0 -translate-x-full"
+  class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 flex flex-col transition-transform duration-300 lg:translate-x-0 -translate-x-full overflow-x-hidden"
   aria-label="Sidebar">
 
   <!-- Logo -->
-  <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-800">
+  <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-800 shrink-0">
     <img
-      src="<?= getConfig('url_logo') ?: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo.png' ?>"
-      alt="<?= e(getConfig('nombre_tienda') ?: 'PalCus') ?>"
+      src="<?= getConfig('url_icono') ?: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/v1778354037/vjypdweg16udzxoptdxz.png' ?>"
+      alt="<?= e(getConfig('nombre_tienda') ?: 'Palcus Peru') ?>"
       class="w-9 h-9 object-contain shrink-0"
       style="filter: brightness(0) invert(1);"
     />
-    <div>
-      <p class="text-white font-bold text-sm leading-none">PalCus Admin</p>
-      <p class="text-slate-500 text-xs mt-0.5">Panel de Gestión</p>
+    <div class="truncate">
+      <p class="text-white font-bold text-sm leading-none truncate">Palcus Peru</p>
+      <p class="text-slate-500 text-xs mt-0.5 truncate">Panel de Gestión</p>
     </div>
     <!-- Close btn mobile -->
-    <button id="sidebarClose" class="ml-auto lg:hidden text-slate-400 hover:text-white">
+    <button id="sidebarClose" class="ml-auto lg:hidden text-slate-400 hover:text-white shrink-0">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
       </svg>
@@ -59,10 +70,10 @@ $groupLabels = [
   </div>
 
   <!-- Navigation -->
-  <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+  <nav class="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-1">
     <?php foreach ($nav as $group => $items): ?>
       <?php if ($groupLabels[$group]): ?>
-      <p class="text-slate-500 text-[10px] font-semibold uppercase tracking-widest px-3 pt-4 pb-1">
+      <p class="text-slate-500 text-[10px] font-semibold uppercase tracking-widest px-3 pt-4 pb-1 truncate">
         <?= $groupLabels[$group] ?>
       </p>
       <?php endif; ?>
@@ -78,7 +89,7 @@ $groupLabels = [
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <?= sidebarIcon($item['icon']) ?>
           </svg>
-          <?= $item['label'] ?>
+          <span class="truncate"><?= $item['label'] ?></span>
           <?php if ($item['page'] === 'ventas'): ?>
             <!-- Badge de notificaciones futuro -->
           <?php endif; ?>
@@ -95,12 +106,12 @@ $groupLabels = [
       </div>
       <div class="flex-1 min-w-0">
         <p class="text-white text-sm font-medium truncate"><?= htmlspecialchars($user['nombre'] ?? '') ?></p>
-        <p class="text-slate-500 text-xs capitalize"><?= $user['rol'] ?? '' ?></p>
+        <p class="text-slate-500 text-xs capitalize truncate"><?= $user['rol'] ?? '' ?></p>
       </div>
       <a href="<?= APP_URL ?>/logout.php"
          title="Cerrar sesión"
-         class="text-slate-500 hover:text-red-400 transition-colors">
-        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+         class="text-slate-500 hover:text-red-400 transition-colors shrink-0">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
         </svg>

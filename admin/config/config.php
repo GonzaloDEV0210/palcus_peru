@@ -17,7 +17,7 @@ define('CLOUDINARY_API_KEY', '923664445241815');
 define('CLOUDINARY_API_SECRET', 'Z8LcceCtkrmWYb2dIWym1ey8vVY');
 
 // --- APLICACIÓN ---
-define('APP_NAME', 'PalCus Admin');
+define('APP_NAME', 'Palcus Peru');
 define('APP_VERSION', '1.0.0');
 // En local: http://localhost/palcus_peru/admin
 // En Hostinger: https://tudominio.com/admin

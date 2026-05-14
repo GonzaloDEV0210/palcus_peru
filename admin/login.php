@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Iniciar Sesión — PalCus Admin</title>
+  <title>Iniciar Sesión — Palcus Peru</title>
   <link rel="icon" href="<?= getConfig('url_icono') ?: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo.png' ?>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
@@ -364,12 +364,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="brand">
       <img
-        src="<?= getConfig('url_icono') ?: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/icon_logo.png' ?>"
-        alt="<?= e(getConfig('nombre_tienda') ?: 'PalCus Perú') ?>"
+        src="<?= getConfig('url_icono') ?: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/v1778354037/vjypdweg16udzxoptdxz.png' ?>"
+        alt="<?= e(getConfig('nombre_tienda') ?: 'Palcus Peru') ?>"
         class="brand-logo"
       />
       <div>
-        <div class="brand-name"><?= e(getConfig('nombre_tienda') ?: 'PalCus Perú') ?></div>
+        <div class="brand-name"><?= e(getConfig('nombre_tienda') ?: 'Palcus Peru') ?></div>
         <div class="brand-sub">Sistema de Gestión</div>
       </div>
     </div>
@@ -406,7 +406,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <div class="left-footer">
-      © <?= date('Y') ?> PalCus Perú &nbsp;·&nbsp; v<?= APP_VERSION ?>
+      © <?= date('Y') ?> Palcus Peru &nbsp;·&nbsp; v<?= APP_VERSION ?>
     </div>
   </div>
 

@@ -96,7 +96,7 @@ function alertLowStock(): void
     $items = checkLowStock();
     if (empty($items)) return;
 
-    $lines = ["⚠️ *PalCus Admin — Alerta de Stock Bajo*\n"];
+    $lines = ["⚠️ *Palcus Peru — Alerta de Stock Bajo*\n"];
     foreach ($items as $i) {
         $lines[] = "• {$i['producto']} ({$i['talla']} / {$i['color']}): {$i['stock']} uds (mín. {$i['stock_minimo']})";
     }
@@ -171,9 +171,9 @@ function generarCodigoVenta(): string
 
 // --- SEGURIDAD ---
 
-function e(string $str): string
+function e(?string $str): string
 {
-    return htmlspecialchars($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return htmlspecialchars($str ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
 function jsonResponse(mixed $data, int $status = 200): void
