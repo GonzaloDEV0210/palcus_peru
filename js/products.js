@@ -13,9 +13,9 @@ window.PalcusUtil = {
       const res = await resp.json();
       
       if (res.success) {
-        window.PALCUS_PRODUCTS = res.products;
-        window.PALCUS_CATEGORY_LABELS = res.categories;
-        window.PALCUS_CATEGORIES_LIST = res.categoriesList;
+        window.PALCUS_PRODUCTS         = res.products;
+        window.PALCUS_CATEGORY_LABELS   = res.categories;
+        window.PALCUS_CATEGORIES_LIST   = res.categories_list || [];
         window.PalcusDbReady = true;
         console.log("Datos cargados desde MySQL:", window.PALCUS_PRODUCTS.length, "productos");
         window.dispatchEvent(new CustomEvent('palcus-data-ready'));
@@ -27,7 +27,11 @@ window.PalcusUtil = {
 
   byCategory: (cat) => {
     const s = (cat || "").toLowerCase();
-    return window.PALCUS_PRODUCTS.filter(p => (p.category || "").toLowerCase() === s);
+    return window.PALCUS_PRODUCTS.filter(p => {
+      const pCat = (p.category || "").toLowerCase();
+      // Coincidencia exacta o que empiece con el path (ej: hombre/manga-corta empieza con hombre)
+      return pCat === s || pCat.startsWith(s + '/');
+    });
   },
   byId: (id) => {
     if (!id) return null;

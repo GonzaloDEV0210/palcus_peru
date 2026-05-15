@@ -9,6 +9,10 @@ $nav = [
   'principal' => [
     ['page' => 'dashboard', 'label' => 'Dashboard', 'href' => 'index.php', 'icon' => 'home', 'roles' => ['admin', 'editor']],
   ],
+  'inventario' => [
+    ['page' => 'categorias', 'label' => 'Categorías',  'href' => 'modules/categorias/', 'icon' => 'tag',     'roles' => ['admin', 'editor']],
+    ['page' => 'productos',  'label' => 'Productos',    'href' => 'modules/productos/',  'icon' => 'package', 'roles' => ['admin', 'editor']],
+  ],
   'configuracion' => [
     ['page' => 'configuracion_sistema', 'label' => 'Configuración Sistema', 'href' => 'modules/configuracion/', 'icon' => 'cog', 'roles' => ['admin']],
   ]
@@ -36,11 +40,11 @@ function sidebarIcon(string $name): string {
 }
 
 $groupLabels = [
-  'principal' => '',
-  'ventas'    => 'Ventas',
-  'inventario'=> 'Inventario',
-  'gestión'   => 'Gestión',
-  'sistema'   => 'Sistema',
+  'principal'     => '',
+  'ventas'        => 'Ventas',
+  'inventario'    => 'Inventario',
+  'gestión'       => 'Gestión',
+  'sistema'       => 'Sistema',
   'configuracion' => 'Configuración',
 ];
 ?>

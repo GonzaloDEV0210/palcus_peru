@@ -1,305 +1,300 @@
 // Renderizadores de páginas (grids de categoría, detalle de producto)
 (function () {
   const U = window.PalcusUtil;
+  const PLACEHOLDER = 'https://res.cloudinary.com/dv7nmkmpm/image/upload/v1778354037/vjypdweg16udzxoptdxz.png';
 
+  /* ── Extraer imágenes de variaciones (JSON o string) ── */
+  function extractImages(p) {
+    const varImages = [];
+    (p.variations || []).forEach(v => {
+      if (v.gallery && Array.isArray(v.gallery)) varImages.push(...v.gallery);
+      else if (v.image) varImages.push(v.image);
+      else if (v.imagen_url) {
+        try {
+          const parsed = JSON.parse(v.imagen_url);
+          if (Array.isArray(parsed)) varImages.push(...parsed);
+          else varImages.push(v.imagen_url);
+        } catch(e) { varImages.push(v.imagen_url); }
+      }
+    });
+    const all = [...new Set([p.image, ...varImages, ...(p.gallery||[])])].filter(
+      img => img && typeof img === 'string' && img.startsWith('http')
+    );
+    return all.length ? all : [PLACEHOLDER];
+  }
+
+  /* ── TARJETA DE PRODUCTO ── */
   function productCard(p) {
     const colors = p.colors || [];
-    const sizes = p.sizes || [];
-    
-    // Obtener todas las imágenes únicas de variaciones
-    const varImages = [...new Set((p.variations || []).map(v => v.imagen_url).filter(img => !!img))];
-    const allImages = [...new Set([p.image, ...varImages])].filter(img => !!img);
-    
-    // Si no hay ninguna imagen, usar placeholder
-    if (allImages.length === 0) allImages.push('https://via.placeholder.com/800x1000?text=PalCus');
-
-    // Lógica de Etiquetas Automáticas
-    let badgeHTML = '';
-    const now = new Date();
-    const created = new Date(p.createdAt || now);
-    const diffDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays <= 15) {
-      badgeHTML = `<div class="product-tag" style="z-index:10;">Lo más Nuevo</div>`;
-    } else if ((p.salesCount || 0) > 10) {
-      badgeHTML = `<div class="product-tag" style="z-index:10;">Lo más vendido</div>`;
-    } else if ((p.viewCount || 0) > 50) {
-      badgeHTML = `<div class="product-tag" style="z-index:10;">Tendencia</div>`;
-    } else if ((p.stock || 0) > 0 && (p.stock || 0) < 5) {
-      badgeHTML = `<div class="product-tag" style="z-index:10;">¡Últimas unidades!</div>`;
-    }
+    const sizes  = p.sizes  || [];
+    const imgs   = extractImages(p);
+    const now    = new Date();
+    const diffDays = Math.floor((now - new Date(p.createdAt||now)) / 86400000);
+    let badge = '';
+    if (diffDays <= 15)              badge = `<div class="product-tag" style="z-index:10;">Lo más Nuevo</div>`;
+    else if ((p.stock||0) < 5 && (p.stock||0) > 0) badge = `<div class="product-tag" style="z-index:10;">Últimas unidades</div>`;
 
     return `
       <a href="producto.html?id=${p.id}" class="product-card" data-product-id="${p.id}">
         <div class="img-wrap">
-          ${badgeHTML}
+          ${badge}
           <div class="product-slider-container">
-            ${allImages.map((img, idx) => `
-              <img src="${U.imageUrl(img)}" 
-                   class="slider-img ${idx === 0 ? 'active' : ''}" 
-                   style="opacity:${idx === 0 ? '1' : '0'}; z-index:${idx === 0 ? '2' : '1'}; transition: opacity 1.5s ease-in-out; position:absolute; inset:0; width:100%; height:100%; object-fit:cover;"
-                   alt="${p.name}" 
-                   loading="lazy">
-            `).join('')}
+            ${imgs.map((img,i) => `<img src="${U.imageUrl(img)}" class="slider-img ${i===0?'active':''}"
+              style="opacity:${i===0?1:0};z-index:${i===0?2:1};transition:opacity 1.5s ease;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
+              alt="${p.name}" loading="lazy">`).join('')}
           </div>
         </div>
-        <div style="margin-top:1rem;padding:0 0.5rem 0.5rem;">
-          <h3 style="font-size:0.875rem;font-weight:600;margin:0;color:var(--foreground);">${p.name}</h3>
-          <p class="font-heading" style="font-size:1rem;font-weight:bold;margin:0.35rem 0 0;color:var(--foreground);">S/${(p.price || 0).toFixed(2)}</p>
-          <div style="display:flex;align-items:center;gap:0.375rem;margin-top:0.75rem;">
-            ${colors.map(c => `<span title="${c.name}" style="width:0.75rem;height:0.75rem;border-radius:9999px;border:1px solid var(--border);background:${c.hex};"></span>`).join('')}
+        <div style="padding:.875rem .25rem .5rem;">
+          <h3 style="font-size:.8125rem;font-weight:400;margin:0;color:var(--foreground);letter-spacing:.01em;">${p.name}</h3>
+          <p style="font-size:.8125rem;font-weight:600;margin:.3rem 0 0;color:var(--foreground);">S/${(p.price||0).toFixed(2)}</p>
+          <div style="display:flex;gap:.35rem;margin-top:.6rem;flex-wrap:wrap;">
+            ${colors.map(c=>`<span title="${c.name}" style="width:10px;height:10px;border-radius:50%;background:${c.hex};border:1px solid rgba(0,0,0,.15);flex-shrink:0;"></span>`).join('')}
           </div>
-          <p style="font-size:0.625rem;color:var(--muted-foreground);text-transform:uppercase;letter-spacing:0.15em;margin:0.5rem 0 0;font-family:'Syne',sans-serif;font-weight:600;">${sizes.join(' · ')}</p>
         </div>
       </a>`;
   }
 
   function renderGrid(containerId, products) {
     const el = document.getElementById(containerId);
-    if (!el) return;
-    el.innerHTML = products.map(productCard).join('');
+    if (el) el.innerHTML = products.map(productCard).join('');
   }
 
+  /* ══════════════════════════════════════════════════════
+     DETALLE DE PRODUCTO — Inspiración NET-A-PORTER / COS
+  ══════════════════════════════════════════════════════ */
   function renderProductDetail() {
     const params = new URLSearchParams(location.search);
     const id = params.get('id');
-    const p = U.byId(id);
+    const p  = U.byId(id);
     const host = document.getElementById('product-detail');
     if (!host) return;
+
     if (!p) {
-      console.warn("Producto no encontrado. ID buscado:", id, "Productos disponibles:", window.PALCUS_PRODUCTS.length);
-      host.innerHTML = `<div style="padding:10rem 2rem;text-align:center;">
-        <p class="font-heading" style="font-size:1.5rem;font-weight:bold;margin-bottom:1rem;">Producto no encontrado</p>
-        <p style="color:var(--muted-foreground);margin-bottom:2rem;">Lo sentimos, el producto con ID <b>${id || 'nulo'}</b> no está disponible o no existe.</p>
-        <a href="catalogo.html" class="btn-primary">Volver al catálogo</a>
+      host.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:1.5rem;text-align:center;padding:2rem;">
+        <p style="font-size:1rem;color:var(--muted-foreground);">Este producto no está disponible.</p>
+        <a href="catalogo.html" class="btn-primary" style="font-size:.8rem;">Ver catálogo</a>
       </div>`;
       return;
     }
-    window.PalcusUtil.trackView(p.id);
+
+    U.trackView(p.id);
     document.title = `${p.name} — PalCus Perú`;
-    let designs = p.designs || [];
-    let sizes = p.sizes || [];
-    let colors = p.colors || [];
-    let selectedSize = null, selectedColor = null, selectedDesign = null, qty = 1;
 
-    function update() {
-      const validDesigns = (selectedColor && p.imageMap) ? Object.keys(p.imageMap[selectedColor] || {}) : (designs || []);
-      if (selectedColor && selectedDesign && !validDesigns.includes(selectedDesign)) {
-        selectedDesign = validDesigns.length > 0 ? validDesigns[0] : null;
-      }
-      
-      // Preparar galería (principal + secundarias + todas las de variaciones)
-      const varImages = [];
-      if (p.imageMap) {
-        Object.values(p.imageMap).forEach(designMap => {
-          Object.values(designMap).forEach(img => {
-            if (img) varImages.push(img);
-          });
-        });
-      }
-      const fullGallery = Array.from(new Set([
-        ...(p.image ? [p.image] : []),
-        ...(p.gallery || []),
-        ...varImages
-      ]));
+    const allImgs  = extractImages(p);
+    const sizes    = p.sizes  || [];
+    const colors   = p.colors || [];
+    const designs  = p.designs || [];
 
-      // Determinar imagen principal
-      let currentImage = p.image || varImages[0] || 'https://via.placeholder.com/800x1000?text=PalCus';
-      if (selectedColor && selectedDesign && p.imageMap?.[selectedColor]?.[selectedDesign]) {
-        currentImage = p.imageMap[selectedColor][selectedDesign];
-      } else if (selectedColor && p.imageMap?.[selectedColor]) {
-        const firstDesign = Object.keys(p.imageMap[selectedColor])[0];
-        if (firstDesign) currentImage = p.imageMap[selectedColor][firstDesign];
-      }
-      
-      let currentStock = p.stock;
-      if (selectedSize || selectedColor || selectedDesign) {
-        const filtered = p.variations.filter(v => 
-          (!selectedSize || v.talla === selectedSize) &&
-          (!selectedColor || v.color === selectedColor) &&
-          (!selectedDesign || v.diseno === selectedDesign)
-        );
-        currentStock = filtered.reduce((acc, v) => acc + parseInt(v.stock), 0);
-      }
+    let selSize = null, selColor = null, selDesign = null, qty = 1;
 
-      host.innerHTML = `
-        <div class="section-padding">
-          <div style="max-width:72rem;margin:0 auto;">
-            <nav style="font-size:0.75rem;color:var(--muted-foreground);margin-bottom:2rem;text-transform:uppercase;letter-spacing:0.1em;">
-              <a href="index.html">Inicio</a><span style="margin:0 0.5rem;">/</span><span style="color:var(--foreground);">${p.name}</span>
-            </nav>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:3rem;">
-              <div style="display:flex;flex-direction:column;gap:1rem;">
-                <div style="background:var(--accent);aspect-ratio:3/4;overflow:hidden;border:1px solid var(--border);">
-                  <img id="mainImg" src="${U.imageUrl(currentImage)}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:0.5rem;">
-                  ${fullGallery.map(img => `
-                    <div class="thumb ${img === currentImage ? 'active' : ''}" data-img="${img}" style="aspect-ratio:1/1;cursor:pointer;border:1px solid ${img === currentImage ? 'var(--foreground)' : 'var(--border)'};overflow:hidden;opacity:${img === currentImage ? '1' : '0.6'};transition:all 0.2s;">
-                      <img src="${U.imageUrl(img)}" style="width:100%;height:100%;object-fit:cover;">
-                    </div>
-                  `).join('')}
-                </div>
+    const CSS = `
+      <style>
+        #pd-outer{max-width:1020px;margin:0 auto;padding:3rem 2rem 5rem;}
+        #pd-wrap{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:start;}
+        @media(max-width:760px){#pd-wrap{grid-template-columns:1fr;gap:2rem;}}
+        #pd-gallery{align-self:start;}
+        #pd-main-img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;border-radius:4px;background:var(--accent);}
+        .pd-thumbs{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap;}
+        .pd-thumb{width:4rem;height:4rem;object-fit:cover;cursor:pointer;border-radius:3px;opacity:.5;transition:opacity .2s,border-color .2s;border:1.5px solid transparent;flex-shrink:0;}
+        .pd-thumb.active{opacity:1;border-color:var(--foreground);}
+        .pd-thumb:hover:not(.active){opacity:.8;}
+        #pd-info{padding-top:.5rem;align-self:start;}
+        .pd-label{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.18em;color:var(--muted-foreground);margin:0 0 .5rem;}
+        .pd-section{margin-bottom:2rem;}
+        .pd-swatch{width:1.5rem;height:1.5rem;border-radius:50%;cursor:pointer;border:1.5px solid transparent;transition:border-color .2s,transform .2s;flex-shrink:0;}
+        .pd-swatch.sel{border-color:var(--foreground);transform:scale(1.15);}
+        .pd-swatch:hover:not(.sel){border-color:var(--muted-foreground);}
+        .pd-pill{display:inline-flex;align-items:center;height:2rem;padding:0 .875rem;font-size:.75rem;font-weight:500;letter-spacing:.04em;cursor:pointer;border:1px solid var(--border);transition:all .15s;background:transparent;color:var(--foreground);}
+        .pd-pill.sel{background:var(--foreground);color:var(--background);}
+        .pd-pill:hover:not(.sel){border-color:var(--foreground);}
+        .pd-cta{display:flex;align-items:center;justify-content:center;width:100%;height:2.875rem;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;border:none;cursor:pointer;background:var(--foreground);color:var(--background);transition:opacity .2s;}
+        .pd-cta:hover{opacity:.82;}
+        .pd-cta.ghost{background:transparent;border:1px solid var(--border);color:var(--foreground);text-decoration:none;margin-top:.5rem;}
+        .pd-cta.ghost:hover{border-color:var(--foreground);}
+        .pd-qty{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;}
+        .pd-qty button{background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--foreground);padding:.25rem .5rem;opacity:.5;transition:opacity .2s;}
+        .pd-qty button:hover{opacity:1;}
+        .pd-qty span{font-size:.875rem;font-weight:600;min-width:1.5rem;text-align:center;}
+        .pd-divider{border:none;border-top:1px solid var(--border);margin:1.75rem 0;}
+        .pd-acc-btn{all:unset;width:100%;display:flex;justify-content:space-between;align-items:center;padding:.875rem 0;cursor:pointer;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;box-sizing:border-box;}
+        .pd-acc-body{overflow:hidden;max-height:0;transition:max-height .3s ease;font-size:.8125rem;line-height:1.75;color:var(--muted-foreground);}
+        @keyframes pdShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+        .pd-err{animation:pdShake .3s ease;}
+      </style>`;
+
+    function getStock() {
+      if (!selSize && !selColor) return p.stock || 0;
+      return (p.variations||[]).filter(v=>(!selColor||v.color===selColor)&&(!selSize||v.talla===selSize))
+                               .reduce((s,v)=>s+parseInt(v.stock||0),0);
+    }
+
+    function getActiveImg() {
+      if (selColor && selDesign && p.imageMap?.[selColor]?.[selDesign]) return p.imageMap[selColor][selDesign];
+      if (selColor && p.imageMap?.[selColor]) { const k=Object.keys(p.imageMap[selColor])[0]; if(k) return p.imageMap[selColor][k]; }
+      return allImgs[0];
+    }
+
+    function render() {
+      const stock    = getStock();
+      const activeImg = getActiveImg();
+      const validDesigns = selColor && p.imageMap ? Object.keys(p.imageMap[selColor]||{}) : designs;
+      if (selColor && validDesigns.length && !selDesign) selDesign = validDesigns[0];
+
+      const stockLine = stock > 0
+        ? `<span style="font-size:.7rem;color:#16a34a;font-weight:600;text-transform:uppercase;letter-spacing:.1em;">${stock} disponibles</span>`
+        : `<span style="font-size:.7rem;color:#dc2626;font-weight:600;text-transform:uppercase;letter-spacing:.1em;">Sin stock</span>`;
+
+      host.innerHTML = CSS + `
+        <div id="pd-outer">
+        <div id="pd-wrap">
+
+          <!-- GALERÍA -->
+          <div id="pd-gallery">
+            <img id="pd-main-img" src="${U.imageUrl(activeImg)}" alt="${p.name}">
+            ${allImgs.length > 1 ? `
+            <div class="pd-thumbs">
+              ${allImgs.map(img => `
+                <img class="pd-thumb ${img===activeImg?'active':''}"
+                     src="${U.imageUrl(img)}" data-img="${img}" alt="${p.name}" loading="lazy">
+              `).join('')}
+            </div>` : ''}
+          </div>
+
+          <!-- INFO -->
+          <div id="pd-info">
+
+            <!-- Breadcrumb -->
+            <p style="font-size:.625rem;text-transform:uppercase;letter-spacing:.18em;color:var(--muted-foreground);margin:0 0 2.5rem;">
+              <a href="index.html" style="color:inherit;text-decoration:none;">Inicio</a>
+              &nbsp;/&nbsp;${p.name}
+            </p>
+
+            <!-- Nombre -->
+            <h1 style="font-size:1.375rem;font-weight:500;letter-spacing:-.01em;line-height:1.25;margin:0 0 1rem;">${p.name}</h1>
+
+            <!-- Precio + stock -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;">
+              <span style="font-size:1.125rem;font-weight:600;">S/&nbsp;${p.price.toFixed(2)}</span>
+              ${stockLine}
+            </div>
+
+            <hr class="pd-divider" style="margin-top:0;">
+
+            <!-- Color -->
+            ${colors.length ? `
+            <div class="pd-section" id="pd-color-sec">
+              <p class="pd-label">Color${selColor?` — ${selColor}`:''}</p>
+              <div style="display:flex;gap:.625rem;flex-wrap:wrap;">
+                ${colors.map(c=>`<button class="pd-swatch ${selColor===c.name?'sel':''}" data-color="${c.name}"
+                  style="background:${c.hex};" title="${c.name}"></button>`).join('')}
               </div>
-              <div style="display:flex;flex-direction:column;justify-content:center;">
-                ${p.tag ? `<span style="font-size:0.625rem;text-transform:uppercase;letter-spacing:0.2em;font-family:'Syne',sans-serif;font-weight:600;color:var(--muted-foreground);margin-bottom:0.5rem;">${p.tag}</span>` : ''}
-                <h1 class="font-heading" style="font-size:2.25rem;font-weight:800;margin:0;">${p.name}</h1>
-                <p class="font-heading" style="font-size:1.5rem;font-weight:bold;margin:0.75rem 0 0;">S/${p.price.toFixed(2)}</p>
-                
-                <div style="margin-top:2rem;">
-                  <p style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.15em;font-family:'Syne',sans-serif;font-weight:600;margin-bottom:0.75rem;">Color${selectedColor ? `: ${selectedColor}` : ''}</p>
-                  <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-                    ${colors.map(c => `
-                      <button class="pick-color" data-color="${c.name}" title="${c.name}" style="position:relative;width:2.5rem;height:2.5rem;border-radius:9999px;border:none;background:${c.hex};cursor:pointer;transition:all 0.2s;${selectedColor===c.name?'outline:2px solid var(--foreground);outline-offset:2px;transform:scale(1.1);':''}">
-                        ${selectedColor===c.name?`<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:${['#f5f5f5','#d4b896','#e8b4b8','#b19cd9','#ffffff','#eab308'].includes(c.hex)?'#1a1a1a':'#fff'};">${window.PalcusIcons.check(16)}</span>`:''}
-                      </button>`).join('')}
-                  </div>
-                </div>
-                
-                <div style="margin-top:2rem;">
-                  <p style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.15em;font-family:'Syne',sans-serif;font-weight:600;margin-bottom:0.75rem;">Talla${selectedSize ? `: ${selectedSize}` : ''}</p>
-                  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                    ${sizes.map(s => `<button class="pick-size" data-size="${s}" style="width:3rem;height:3rem;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:500;border:1px solid ${selectedSize===s?'var(--primary)':'var(--border)'};background:${selectedSize===s?'var(--primary)':'transparent'};color:${selectedSize===s?'var(--primary-foreground)':'var(--foreground)'};cursor:pointer;">${s}</button>`).join('')}
-                  </div>
-                </div>
+            </div>` : ''}
 
-                ${validDesigns && validDesigns.length > 0 ? `
-                <div style="margin-top:2rem;">
-                  <p style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.15em;font-family:'Syne',sans-serif;font-weight:600;margin-bottom:0.75rem;">Diseño${selectedDesign ? `: ${selectedDesign}` : ''}</p>
-                  <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                    ${validDesigns.map(d => `<button class="pick-design" data-design="${d}" style="padding:0.5rem 1rem;font-size:0.75rem;font-weight:500;border:1px solid ${selectedDesign===d?'var(--primary)':'var(--border)'};background:${selectedDesign===d?'var(--primary)':'transparent'};color:${selectedDesign===d?'var(--primary-foreground)':'var(--foreground)'};cursor:pointer;border-radius:0.25rem;">${d}</button>`).join('')}
-                  </div>
-                </div>` : ''}
+            <!-- Talla -->
+            ${sizes.length ? `
+            <div class="pd-section" id="pd-size-sec">
+              <p class="pd-label">Talla</p>
+              <div style="display:flex;gap:.375rem;flex-wrap:wrap;">
+                ${sizes.map(s=>`<button class="pd-pill ${selSize===s?'sel':''}" data-size="${s}">${s}</button>`).join('')}
+              </div>
+            </div>` : ''}
 
-                <div style="margin-top:1.5rem;padding:1rem;background:var(--accent);border-radius:0.5rem;">
-                  <div style="display:flex;align-items:center;gap:0.5rem;">
-                    <div style="width:0.5rem;height:0.5rem;border-radius:9999px;background:${currentStock > 0 ? '#10b981' : '#ef4444'};"></div>
-                    <span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${currentStock > 0 ? 'var(--foreground)' : '#ef4444'};">
-                      ${currentStock > 0 ? `${currentStock} disponibles` : 'Agotado'}
-                    </span>
-                  </div>
-                </div>
-
-                <div style="margin-top:2rem;display:flex;gap:1rem;align-items:flex-end;">
-                  <div style="flex:1;">
-                    <p style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.15em;font-family:'Syne',sans-serif;font-weight:600;margin-bottom:0.75rem;">Cantidad</p>
-                    <div style="display:flex;align-items:center;justify-content:space-between;border:1px solid var(--border);height:3rem;padding:0 0.5rem;">
-                      <button id="qd" style="background:none;border:none;cursor:pointer;padding:0.5rem;">${window.PalcusIcons.minus(14)}</button>
-                      <span style="font-size:1rem;font-weight:600;min-width:2rem;text-align:center;">${qty}</span>
-                      <button id="qi" style="background:none;border:none;cursor:pointer;padding:0.5rem;">${window.PalcusIcons.plus(14)}</button>
-                    </div>
-                  </div>
-                  <div style="flex:2;">
-                    ${(() => {
-                      const stock = currentStock;
-                      const missing = !selectedSize || !selectedColor || (validDesigns.length > 0 && !selectedDesign);
-                      if (stock <= 0) return `<button class="btn-primary" style="width:100%;height:3rem;background:#999;cursor:not-allowed;" disabled>Agotado</button>`;
-                      return `<button id="addCart" class="btn-primary" style="width:100%;height:3rem;${missing?'opacity:0.4;cursor:not-allowed;':''}" ${missing?'disabled':''}>Agregar al carrito</button>`;
-                    })()}
-                  </div>
-                </div>
-                <a href="https://wa.me/${window.PalcusCart.PHONE}?text=${encodeURIComponent(`Hola PalCus Perú! Me interesa: ${p.name} - S/${p.price.toFixed(2)}`)}" target="_blank" rel="noopener" class="btn-outline" style="margin-top:1rem;height:3rem;display:flex;align-items:center;justify-content:center;">Consultar por WhatsApp</a>
-
-                <!-- Accordions -->
-                <div style="margin-top:3rem;border-top:1px solid var(--border);">
-                  ${p.features ? `
-                  <div class="accordion" style="border-bottom:1px solid var(--border);">
-                    <button class="accordion-trigger" style="width:100%;padding:1.25rem 0;display:flex;align-items:center;justify-content:space-between;background:none;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.875rem;text-transform:uppercase;letter-spacing:0.1em;">
-                      Descripción y Características
-                      <span class="icon" style="transition:transform 0.3s;">${window.PalcusIcons.chevronDown(16)}</span>
-                    </button>
-                    <div class="accordion-content" style="max-height:0;overflow:hidden;transition:all 0.3s ease-out;font-size:0.9375rem;color:var(--muted-foreground);line-height:1.6;">
-                      <div style="padding-bottom:1.25rem;">${p.features.replace(/\n/g, '<br>')}</div>
-                    </div>
-                  </div>` : ''}
-                  
-                  ${p.modelInfo ? `
-                  <div class="accordion" style="border-bottom:1px solid var(--border);">
-                    <button class="accordion-trigger" style="width:100%;padding:1.25rem 0;display:flex;align-items:center;justify-content:space-between;background:none;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:0.875rem;text-transform:uppercase;letter-spacing:0.1em;">
-                      Información del Modelo
-                      <span class="icon" style="transition:transform 0.3s;">${window.PalcusIcons.chevronDown(16)}</span>
-                    </button>
-                    <div class="accordion-content" style="max-height:0;overflow:hidden;transition:all 0.3s ease-out;font-size:0.9375rem;color:var(--muted-foreground);line-height:1.6;">
-                      <div style="padding-bottom:1.25rem;">${p.modelInfo.replace(/\n/g, '<br>')}</div>
-                    </div>
-                  </div>` : ''}
-                </div>
-
+            <!-- Cantidad -->
+            <div class="pd-section">
+              <p class="pd-label">Cantidad</p>
+              <div class="pd-qty">
+                <button id="pd-qd">−</button>
+                <span id="pd-qty">${qty}</span>
+                <button id="pd-qi">+</button>
               </div>
             </div>
+
+            <!-- CTA -->
+            <button id="pd-add" class="pd-cta">
+              ${stock > 0 ? 'Agregar al carrito' : 'Sin disponibilidad'}
+            </button>
+            <a href="https://wa.me/${window.PalcusCart.PHONE}?text=${encodeURIComponent(`Hola PalCus! Me interesa: ${p.name} — S/${p.price.toFixed(2)}`)}"
+               target="_blank" rel="noopener" class="pd-cta ghost">
+              ${window.PalcusIcons.whatsapp(14)}&nbsp;&nbsp;Consultar por WhatsApp
+            </a>
+
+            <hr class="pd-divider">
+
+            <!-- Combinaciones -->
+            <div class="pd-section">
+              <p class="pd-label" style="margin-bottom:.75rem;">Combínalo con</p>
+              <p style="font-size:.8rem;color:var(--muted-foreground);line-height:1.8;margin:0;">
+                Jeans &nbsp;·&nbsp; Faldas &nbsp;·&nbsp; Shorts &nbsp;·&nbsp; Joggers
+              </p>
+            </div>
+
+            <!-- Accordions -->
+            ${p.features?`
+            <div style="border-top:1px solid var(--border);">
+              <button class="pd-acc-btn" data-target="feat">Características <span>+</span></button>
+              <div class="pd-acc-body" id="acc-feat"><div style="padding-bottom:1.25rem;">${p.features.replace(/\n/g,'<br>')}</div></div>
+            </div>`:``}
+            ${p.modelInfo?`
+            <div style="border-top:1px solid var(--border);">
+              <button class="pd-acc-btn" data-target="model">Información del modelo <span>+</span></button>
+              <div class="pd-acc-body" id="acc-model"><div style="padding-bottom:1.25rem;">${p.modelInfo.replace(/\n/g,'<br>')}</div></div>
+            </div>`:``}
+
           </div>
-        </div>`;
-      
-      // Eventos
-      host.querySelectorAll('.accordion-trigger').forEach(btn => btn.onclick = () => {
-        const content = btn.nextElementSibling;
-        const icon = btn.querySelector('.icon');
-        const isOpen = content.style.maxHeight !== '0px' && content.style.maxHeight !== '';
-        
-        host.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = '0px');
-        host.querySelectorAll('.accordion-trigger .icon').forEach(i => i.style.transform = 'rotate(0deg)');
+        </div><!-- pd-wrap -->
+        </div><!-- pd-outer -->`;
 
-        if (!isOpen) {
-          content.style.maxHeight = content.scrollHeight + 'px';
-          icon.style.transform = 'rotate(180deg)';
-        }
+      /* — EVENTOS — */
+      host.querySelectorAll('.pd-thumb').forEach(img => img.onclick = () => {
+        host.querySelector('#pd-main-img').src = U.imageUrl(img.dataset.img);
+        host.querySelectorAll('.pd-thumb').forEach(x => x.classList.remove('active'));
+        img.classList.add('active');
       });
-      host.querySelectorAll('.thumb').forEach(t => t.onclick = () => {
-        host.querySelector('#mainImg').src = U.imageUrl(t.dataset.img);
-        host.querySelectorAll('.thumb').forEach(thumb => {
-           thumb.style.opacity = '0.6';
-           thumb.style.borderColor = 'var(--border)';
-        });
-        t.style.opacity = '1';
-        t.style.borderColor = 'var(--foreground)';
-      });
+      host.querySelectorAll('.pd-swatch').forEach(b=>b.onclick=()=>{ selColor=b.dataset.color; render(); });
+      host.querySelectorAll('.pd-pill'  ).forEach(b=>b.onclick=()=>{ selSize =b.dataset.size;  render(); });
+      host.querySelector('#pd-qd').onclick=()=>{ qty=Math.max(1,qty-1); host.querySelector('#pd-qty').textContent=qty; };
+      host.querySelector('#pd-qi').onclick=()=>{ qty++; host.querySelector('#pd-qty').textContent=qty; };
 
-      host.querySelectorAll('.pick-color').forEach(b => b.onclick = () => { 
-        selectedColor = b.dataset.color; 
-        update(); 
-      });
-      host.querySelectorAll('.pick-size').forEach(b => b.onclick = () => { selectedSize = b.dataset.size; update(); });
-      host.querySelectorAll('.pick-design').forEach(b => b.onclick = () => { selectedDesign = b.dataset.design; update(); });
-      host.querySelector('#qd').onclick = () => { qty = Math.max(1, qty - 1); update(); };
-      host.querySelector('#qi').onclick = () => { 
-        if (qty < (p.stock || 0)) {
-          qty = qty + 1; 
-          update(); 
+      host.querySelector('#pd-add').onclick=()=>{
+        if (stock<=0) return;
+        if (!selColor && colors.length) {
+          const s=document.getElementById('pd-color-sec'); s.classList.add('pd-err'); s.scrollIntoView({block:'center',behavior:'smooth'}); setTimeout(()=>s.classList.remove('pd-err'),350); return;
         }
+        if (!selSize && sizes.length) {
+          const s=document.getElementById('pd-size-sec'); s.classList.add('pd-err'); s.scrollIntoView({block:'center',behavior:'smooth'}); setTimeout(()=>s.classList.remove('pd-err'),350); return;
+        }
+        window.PalcusCart.add({...p,image:getActiveImg()}, selSize, selColor, selDesign, qty);
+        const btn=host.querySelector('#pd-add');
+        btn.textContent='✓  Agregado';
+        setTimeout(()=>{ btn.textContent='Agregar al carrito'; window.PalcusLayout.openCart(); },600);
       };
-      const addBtn = host.querySelector('#addCart');
-      if (addBtn && !addBtn.disabled) addBtn.onclick = () => {
-        const productForCart = { ...p, image: currentImage };
-        window.PalcusCart.add(productForCart, selectedSize, selectedColor, selectedDesign, qty);
-        addBtn.innerHTML = `${window.PalcusIcons.check(16)} Agregado`;
-        setTimeout(() => window.PalcusLayout.openCart(), 500);
-      };
+
+      host.querySelectorAll('.pd-acc-btn').forEach(btn=>{
+        const body=document.getElementById('acc-'+btn.dataset.target);
+        const ico=btn.querySelector('span');
+        btn.onclick=()=>{
+          const open=body.style.maxHeight&&body.style.maxHeight!=='0px';
+          body.style.maxHeight=open?'0px':body.scrollHeight+'px';
+          ico.textContent=open?'+':'−';
+        };
+      });
     }
-    update();
+
+    render();
   }
 
-  // --- Lógica Global de Auto-Slider para Cards ---
-  // Cicla las imágenes de los productos que tienen varios colores/fotos
-  setInterval(() => {
-    document.querySelectorAll('.product-slider-container').forEach(container => {
-      const images = container.querySelectorAll('.slider-img');
-      if (images.length <= 1) return;
-      
-      let activeIdx = Array.from(images).findIndex(img => img.classList.contains('active'));
-      if (activeIdx === -1) activeIdx = 0;
-
-      // Desactivar actual
-      images[activeIdx].classList.remove('active');
-      images[activeIdx].style.opacity = '0';
-      images[activeIdx].style.zIndex = '1';
-      
-      // Activar siguiente
-      let nextIdx = (activeIdx + 1) % images.length;
-      images[nextIdx].classList.add('active');
-      images[nextIdx].style.opacity = '1';
-      images[nextIdx].style.zIndex = '2';
+  /* Auto-Slider tarjetas */
+  setInterval(()=>{
+    document.querySelectorAll('.product-slider-container').forEach(c=>{
+      const imgs=c.querySelectorAll('.slider-img');
+      if(imgs.length<=1)return;
+      let ai=Array.from(imgs).findIndex(i=>i.classList.contains('active'));
+      if(ai===-1)ai=0;
+      imgs[ai].classList.remove('active');imgs[ai].style.opacity='0';imgs[ai].style.zIndex='1';
+      const ni=(ai+1)%imgs.length;
+      imgs[ni].classList.add('active');imgs[ni].style.opacity='1';imgs[ni].style.zIndex='2';
     });
-  }, 3500); // Un poco más rápido para que se note el efecto
+  },3500);
 
-  window.PalcusRender = { renderGrid, renderProductDetail, productCard };
+  window.PalcusRender={renderGrid,renderProductDetail,productCard};
 })();

@@ -156,6 +156,101 @@ function registrarMovimiento(
     }
 }
 
+// --- GENERACIÓN AUTOMÁTICA DE SKU ---
+
+/**
+ * Convierte un color en una abreviación de 3 letras para el SKU de variación.
+ * Ejemplos: "Blanco" → "BLC", "Negro" → "NGR", "Azul Marino" → "AZM"
+ */
+function abreviarColor(string $color): string
+{
+    $map = [
+        'blanco'      => 'BLC', 'negro'    => 'NGR', 'rojo'     => 'ROJ',
+        'azul'        => 'AZL', 'verde'    => 'VRD', 'amarillo' => 'AMR',
+        'rosado'      => 'RSD', 'rosa'     => 'RSA', 'morado'   => 'MRD',
+        'lila'        => 'LIL', 'naranja'  => 'NRJ', 'celeste'  => 'CLT',
+        'gris'        => 'GRS', 'beige'    => 'BGE', 'crema'    => 'CRM',
+        'cafe'        => 'CAF', 'café'     => 'CAF', 'marron'   => 'MRN',
+        'marrón'      => 'MRN', 'turquesa' => 'TRQ', 'coral'    => 'CRL',
+        'salmon'      => 'SLM', 'salmón'   => 'SLM', 'fucsia'   => 'FCS',
+        'aqua'        => 'AQA', 'dorado'   => 'DRD', 'plateado' => 'PLT',
+        'marino'      => 'MRN', 'khaki'    => 'KHK', 'oliva'    => 'OLV',
+        'terracota'   => 'TRC', 'lavanda'  => 'LVN', 'mostaza'  => 'MST',
+    ];
+
+    $key = mb_strtolower(trim($color), 'UTF-8');
+    // Buscar coincidencia exacta primero
+    if (isset($map[$key])) return $map[$key];
+    // Buscar si alguna palabra del color coincide
+    foreach (explode(' ', $key) as $word) {
+        if (isset($map[$word])) return $map[$word];
+    }
+    // Fallback: primeras 3 letras en mayúscula, sin tildes
+    $clean = preg_replace('/[^a-z]/u', '', strtr($key, ['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ñ'=>'n']));
+    return strtoupper(substr($clean, 0, 3)) ?: 'GEN';
+}
+
+/**
+ * Genera el SKU de un PRODUCTO de forma atómica y garantizada única.
+ *
+ * Usa la tabla `sku_secuencias` con UPDATE atómico para evitar race conditions.
+ * Formato: MCO-00001 (Prefijo de categoría + secuencia de 5 dígitos con ceros).
+ *
+ * @param string $prefijo  Prefijo de la categoría hoja (ej: "MCO")
+ * @return string          SKU único (ej: "MCO-00001")
+ */
+function generarSkuProducto(string $prefijo): string
+{
+    $prefijo = strtoupper(trim($prefijo));
+    if (!$prefijo) $prefijo = 'GEN';
+
+    // Asegurar que la secuencia existe (para prefijos nuevos)
+    db()->execute(
+        "INSERT INTO sku_secuencias (prefijo, ultimo_seq) VALUES (?, 0)
+         ON DUPLICATE KEY UPDATE prefijo = prefijo",
+        [$prefijo]
+    );
+
+    // UPDATE atómico: incrementa y lee en una sola operación segura
+    db()->execute(
+        "UPDATE sku_secuencias SET ultimo_seq = ultimo_seq + 1 WHERE prefijo = ?",
+        [$prefijo]
+    );
+    $seq = db()->fetchOne(
+        "SELECT ultimo_seq FROM sku_secuencias WHERE prefijo = ?",
+        [$prefijo]
+    )['ultimo_seq'] ?? 1;
+
+    $sku = $prefijo . '-' . str_pad($seq, 5, '0', STR_PAD_LEFT);
+
+    // Doble verificación: en el improbable caso de colisión (datos previos)
+    $exists = db()->fetchOne("SELECT id FROM productos WHERE sku = ?", [$sku]);
+    if ($exists) {
+        // Rarísimo, pero si ocurre: seguimos incrementando
+        return generarSkuProducto($prefijo);
+    }
+
+    return $sku;
+}
+
+/**
+ * Genera el SKU de una VARIACIÓN de forma determinista y única.
+ *
+ * Formato: MCO-00001-M-BLC (ProductoSKU-Talla-ColorAbreviado)
+ * No necesita tabla de secuencias: se construye de datos únicos.
+ *
+ * @param string $skuProducto  SKU del producto padre (ej: "MCO-00001")
+ * @param string $talla        Talla (ej: "M", "L", "XL")
+ * @param string $color        Color en texto (ej: "Blanco")
+ * @return string              SKU de variación único
+ */
+function generarSkuVariacion(string $skuProducto, string $talla, string $color): string
+{
+    $tallaClean = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $talla));
+    $colorCode  = abreviarColor($color);
+    return "{$skuProducto}-{$tallaClean}-{$colorCode}";
+}
+
 // --- GENERACIÓN DE CÓDIGO DE VENTA ---
 
 function generarCodigoVenta(): string

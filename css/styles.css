@@ -355,12 +355,12 @@ button { font-family: inherit; cursor: pointer; }
 /* Logo invert (footer) */
 .invert { filter: invert(1); }
 
-/* Preloader */
+/* Preloader Premium Dark */
 #global-preloader {
   position: fixed;
   inset: 0;
   z-index: 999999;
-  background: #ffffff;
+  background: var(--primary); /* Fondo Negro Marca */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -375,13 +375,13 @@ button { font-family: inherit; cursor: pointer; }
 .preloader-img {
   width: 80px;
   height: auto;
-  filter: grayscale(1) brightness(0); /* Forzar negro */
+  filter: brightness(0) invert(1); /* Forzar Blanco */
   animation: preloader-premium 2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
 .preloader-bar {
   width: 120px;
   height: 2px;
-  background: #f0f0f0;
+  background: oklch(1 0 0 / 0.1);
   margin-top: 2rem;
   position: relative;
   overflow: hidden;
@@ -392,7 +392,7 @@ button { font-family: inherit; cursor: pointer; }
   position: absolute;
   top: 0; left: 0;
   height: 100%; width: 40%;
-  background: #000;
+  background: #fff; /* Progreso Blanco */
   animation: bar-premium 1.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
 @keyframes preloader-premium {

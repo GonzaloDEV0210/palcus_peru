@@ -6,123 +6,116 @@
   const API_BRANDING = 'admin/api/get_branding.php';
 
   let navLinks = [
-    { href: 'index.html', label: 'Inicio' },
+    { href: 'index.html', label: 'Inicio', children: [] },
   ];
 
   window.PalcusBranding = {
     url_icono: 'preloader-icon.png',
     url_logo: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/v1778354037/vjypdweg16udzxoptdxz.png',
     url_hero: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/palcus_assets/hero-banner-mujer.jpg',
-    nombre_tienda: 'PalCus Perú'
+    nombre_tienda: 'PalCus Perú',
+    top_announcement: 'Envío gratis en compras mayores a S/200 · 100% Algodón Peruano'
   };
 
   function updateNavLinks() {
     const list = window.PALCUS_CATEGORIES_LIST || [];
-    
-    // Función para construir árbol recursivo
-    const buildTree = (parentId = null) => {
-      return list
-        .filter(c => (parentId === null ? (!c.parent_id || c.parent_id == "0") : c.parent_id == parentId))
-        .map(c => ({
-          href: `catalogo.html?categoria=${c.slug}`,
-          label: c.name,
-          category: c.slug,
-          id: c.id,
-          subcategories: buildTree(c.id)
-        }));
-    };
+    if (!list.length) return false;
 
-    const tree = buildTree();
+    function buildNode(cat) {
+      return {
+        id: cat.id,
+        label: cat.name,
+        href: `catalogo.html?categoria=${cat.slug_path}`,
+        slug_path: cat.slug_path,
+        children: list
+          .filter(c => c.parent_id && Number(c.parent_id) === Number(cat.id))
+          .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+          .map(buildNode)
+      };
+    }
+
+    const roots = list
+      .filter(c => !c.parent_id || c.parent_id == 0 || c.parent_id == "0" || c.parent_id == "null")
+      .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+      .map(buildNode);
+
+    if (roots.length === 0) return false;
+
     navLinks = [
-      { href: 'index.html', label: 'Inicio' },
-      ...tree
+      { label: 'Inicio', href: 'index.html', children: [] },
+      ...roots
     ];
+    return true;
   }
 
   const currentPage = (location.pathname.split('/').pop() || 'index.html');
 
   function buildHeader() {
+    function renderMegaColumn(node, depth) {
+      const hasChildren = node.children && node.children.length > 0;
+      const childColor  = depth === 1 ? 'var(--foreground)' : 'var(--muted-foreground)';
+      const childSize   = depth === 1 ? '0.8rem' : '0.75rem';
+      const childWeight = depth === 1 ? '700' : '500';
+      const childrenHTML = hasChildren
+        ? `<div style="display:flex;flex-direction:column;gap:0.3rem;margin-top:0.4rem;padding-left:0.75rem;border-left:2px solid var(--border);">
+            ${node.children.map(ch => renderMegaColumn(ch, depth + 1)).join('')}
+          </div>`
+        : '';
+      return `<div>
+        <a href="${node.href}" style="display:block;font-size:${childSize};font-weight:${childWeight};color:${childColor};padding:0.2rem 0;white-space:nowrap;transition:opacity .2s;" onmouseover="this.style.opacity='.6'" onmouseout="this.style.opacity='1'">${node.label}</a>
+        ${childrenHTML}
+      </div>`;
+    }
+
     const navHTML = navLinks.map(link => {
-      const active = currentPage === link.href ? 'active' : '';
-      const hasSub = link.subcategories && link.subcategories.length > 0;
-      
-      let dropdown = '';
-      if (hasSub) {
-        // Renderizado multinivel (Nivel 1 y Nivel 2 dentro del dropdown)
-        const groupsHTML = link.subcategories.map(sub => {
-          const hasThirdLevel = sub.subcategories && sub.subcategories.length > 0;
-          return `
-            <div style="min-width:140px;">
-              <a href="${sub.href}" style="font-weight:700;color:var(--foreground);padding:0 0 0.5rem 0;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;display:block;">${sub.label}</a>
-              ${hasThirdLevel ? `
-                <div style="display:flex;flex-direction:column;gap:0.4rem;padding-left:0.25rem;border-left:1px solid var(--border);">
-                  ${sub.subcategories.map(third => `
-                    <a href="${third.href}" style="font-size:0.75rem;color:var(--muted-foreground);padding:0;display:block;white-space:nowrap;" class="hover:text-foreground transition-colors">${third.label}</a>
-                  `).join('')}
-                </div>
-              ` : ''}
-            </div>
-          `;
-        }).join('');
-
-        dropdown = `
-          <div class="dropdown" style="min-width:auto;width:max-content;max-width:80vw;">
-            <div class="dropdown-card" style="display:flex;gap:2.5rem;padding:1.5rem 2rem;">
-              ${groupsHTML}
-            </div>
-          </div>`;
+      const active = (currentPage === link.href || (link.slug_path && location.search.includes(link.slug_path))) ? 'active' : '';
+      const hasChildren = link.children && link.children.length > 0;
+      let megaMenu = '';
+      if (hasChildren) {
+        const cols = link.children.map(child => `
+          <div style="min-width:130px;">
+            <a href="${child.href}" style="display:block;font-size:0.7rem;font-weight:800;color:var(--foreground);text-transform:uppercase;letter-spacing:0.1em;padding:0 0 0.6rem 0;border-bottom:2px solid var(--border);margin-bottom:0.75rem;white-space:nowrap;">${child.label}</a>
+            ${child.children && child.children.length
+              ? `<div style="display:flex;flex-direction:column;gap:0.5rem;">${child.children.map(sub => renderMegaColumn(sub, 1)).join('')}</div>`
+              : ''}
+          </div>`).join('');
+        megaMenu = `<div class="mega-menu" style="position:absolute;top:calc(100% + 1px);left:50%;transform:translateX(-50%);background:oklch(1 0 0 / 0.98);backdrop-filter:blur(16px);border:1px solid var(--border);border-top:3px solid var(--foreground);border-radius:0 0 1rem 1rem;padding:1.5rem 2rem;display:flex;gap:2.5rem;box-shadow:0 16px 40px -8px rgba(0,0,0,0.15);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;min-width:max-content;max-width:80vw;z-index:100;">${cols}</div>`;
       }
-
-      return `<div class="nav-group" style="position:relative;">
-        <a href="${link.href}" class="nav-link ${active}">${link.label}${hasSub ? I.chevronDown(12) : ''}</a>
-        ${dropdown}
+      return `<div class="nav-group" style="position:relative;" onmouseenter="const m=this.querySelector('.mega-menu');if(m){m.style.opacity='1';m.style.visibility='visible';}" onmouseleave="const m=this.querySelector('.mega-menu');if(m){m.style.opacity='0';m.style.visibility='hidden';}">
+        <a href="${link.href}" class="nav-link ${active}" style="display:flex;align-items:center;gap:0.3rem;">
+          ${link.label}
+          ${hasChildren ? I.chevronDown(10) : ''}
+        </a>
+        ${megaMenu}
       </div>`;
     }).join('');
-    
-    // Si no hay categorías aún y no estamos en Inicio, mostrar un indicador de carga o nada
-    const navHTMLFinal = navLinks.length > 1 ? navHTML : `
-      <div class="nav-group"><a href="index.html" class="nav-link ${currentPage==='index.html'?'active':''}">Inicio</a></div>
-    `;
+
+    function renderMobileNode(node, depth) {
+      const indent = depth * 1;
+      const hasC = node.children && node.children.length > 0;
+      const id = `mob-${node.label.replace(/\s/g,'-').toLowerCase()}-${depth}`;
+      return `<div style="padding-left:${indent}rem;"><div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid var(--border);"><a href="${node.href}" style="font-size:${depth===0?'0.875':'0.75'}rem;font-weight:${depth===0?'700':'500'};color:var(--foreground);text-transform:${depth===0?'uppercase':'none'};letter-spacing:${depth===0?'0.1em':'0'};">${node.label}</a>${hasC ? `<button onclick="const el=document.getElementById('${id}');el.style.display=el.style.display==='none'?'block':'none';" style="background:none;border:none;padding:0.25rem;color:var(--muted-foreground);cursor:pointer;">${I.chevronDown(12)}</button>` : ''}</div>${hasC ? `<div id="${id}" style="display:none;">${node.children.map(ch => renderMobileNode(ch, depth+1)).join('')}</div>` : ''}</div>`;
+    }
 
     return `
     <header style="position:sticky;top:0;z-index:40;background:oklch(1 0 0 / 0.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);">
       <div style="background:var(--primary);color:var(--primary-foreground);text-align:center;padding:0.5rem 1rem;">
-        <p style="font-size:0.75rem;letter-spacing:0.2em;font-family:'Syne',sans-serif;text-transform:uppercase;margin:0;">
-          Envío gratis en compras mayores a S/200 · 100% Algodón Peruano
-        </p>
+        <p id="top-announcement-bar" style="font-size:0.75rem;letter-spacing:0.2em;font-family:'Syne',sans-serif;text-transform:uppercase;margin:0;">${window.PalcusBranding.top_announcement}</p>
       </div>
       <div style="max-width:80rem;margin:0 auto;padding:0 1rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;height:4rem;">
           <button id="mobileMenuBtn" style="background:none;border:none;padding:0.5rem;display:none;" aria-label="Menú" class="mobile-only">${I.menu()}</button>
           <a href="index.html" style="flex-shrink:0;"><img id="main-logo" src="${window.PalcusBranding.url_logo}" alt="${window.PalcusBranding.nombre_tienda}" style="height:3rem;width:auto;"></a>
-          <nav class="desktop-nav" style="display:flex;align-items:center;gap:2rem;">${navHTMLFinal}</nav>
+          <nav class="desktop-nav" style="display:flex;align-items:center;gap:2rem;">${navHTML}</nav>
           <div style="display:flex;align-items:center;gap:0.75rem;">
             <button id="searchBtn" style="background:none;border:none;padding:0.5rem;" aria-label="Buscar">${I.search()}</button>
-            <button id="cartBtn" style="background:none;border:none;padding:0.5rem;position:relative;" aria-label="Carrito">
-              ${I.shoppingBag()}
-              <span data-cart-count style="position:absolute;top:-2px;right:-2px;background:var(--foreground);color:var(--background);font-size:10px;font-weight:bold;width:1rem;height:1rem;border-radius:9999px;display:none;align-items:center;justify-content:center;">0</span>
-            </button>
+            <button id="cartBtn" style="background:none;border:none;padding:0.5rem;position:relative;" aria-label="Carrito">${I.shoppingBag()}<span data-cart-count style="position:absolute;top:-2px;right:-2px;background:var(--foreground);color:var(--background);font-size:10px;font-weight:bold;width:1rem;height:1rem;border-radius:9999px;display:none;align-items:center;justify-content:center;">0</span></button>
           </div>
         </div>
       </div>
-      <div id="mobileMenu" style="display:none;border-top:1px solid var(--border);background:var(--background);padding:1rem;max-height:80vh;overflow-y:auto;">
-        ${navLinks.map(l => `
-          <a href="${l.href}" style="display:block;font-size:0.875rem;text-transform:uppercase;letter-spacing:0.15em;font-weight:600;padding:0.75rem 0;color:${currentPage===l.href?'var(--foreground)':'var(--muted-foreground)'};border-bottom:1px solid var(--border);">${l.label}</a>
-          ${l.subcategories ? l.subcategories.map(s => `
-            <a href="${s.href}" style="display:block;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;padding:0.5rem 0 0.5rem 1.25rem;color:var(--foreground);">${s.label}</a>
-            ${s.subcategories ? s.subcategories.map(t => `
-              <a href="${t.href}" style="display:block;font-size:0.75rem;font-weight:400;padding:0.4rem 0 0.4rem 2.5rem;color:var(--muted-foreground);">${t.label}</a>
-            `).join('') : ''}
-          `).join('') : ''}
-        `).join('')}
-      </div>
+      <div id="mobileMenu" style="display:none;border-top:1px solid var(--border);background:var(--background);padding:1rem;max-height:80vh;overflow-y:auto;">${navLinks.map(l => renderMobileNode(l, 0)).join('')}</div>
     </header>
-    <style>
-      @media (max-width: 1024px) {
-        .desktop-nav { display: none !important; }
-        .mobile-only { display: block !important; }
-      }
-    </style>`;
+    <style>@media (max-width: 1024px) { .desktop-nav { display: none !important; } .mobile-only { display: block !important; } }</style>`;
   }
 
   function buildFooter() {
@@ -131,139 +124,23 @@
       { href: 'https://instagram.com/palcusperu', label: 'Instagram', icon: I.instagram(), handle: '@PalCusPeru' },
       { href: 'https://tiktok.com/@palcusperu', label: 'TikTok', icon: I.tiktok(), handle: '@PalCusPeru' },
     ];
-    return `
-    <footer style="background:var(--primary);color:var(--primary-foreground);">
-      <div style="max-width:80rem;margin:0 auto;padding:4rem 1rem;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2.5rem;">
-          <div>
-            <img id="footer-logo" src="${window.PalcusBranding.url_logo}" alt="${window.PalcusBranding.nombre_tienda}" class="invert" style="height:3rem;width:auto;margin-bottom:1.5rem;">
-            <p style="font-size:0.875rem;opacity:0.7;line-height:1.6;">Moda casual exclusiva para mujer con 100% algodón peruano. Calidad, confort y estilo en cada prenda.</p>
-          </div>
-          <div>
-            <h4 style="font-family:'Syne',sans-serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.2em;font-weight:600;margin-bottom:1rem;">Colección</h4>
-            <ul style="list-style:none;padding:0;margin:0;font-size:0.875rem;opacity:0.7;display:flex;flex-direction:column;gap:0.5rem;">
-              ${Object.entries(window.PALCUS_CATEGORY_LABELS).map(([slug, name]) => `
-                <li><a href="catalogo.html?categoria=${slug}">Polo ${name}</a></li>
-              `).join('')}
-            </ul>
-          </div>
-          <div>
-            <h4 style="font-family:'Syne',sans-serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.2em;font-weight:600;margin-bottom:1rem;">Ayuda</h4>
-            <ul style="list-style:none;padding:0;margin:0;font-size:0.875rem;opacity:0.7;display:flex;flex-direction:column;gap:0.5rem;">
-              <li><a href="faq.html">Preguntas Frecuentes</a></li>
-              <li><a href="devoluciones.html">Devoluciones</a></li>
-              <li><a href="libro-reclamaciones.html">Libro de Reclamaciones</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 style="font-family:'Syne',sans-serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.2em;font-weight:600;margin-bottom:1rem;">Síguenos</h4>
-            <div style="display:flex;flex-direction:column;gap:0.75rem;">
-              ${social.map(s => `
-                <a href="${s.href}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:0.75rem;">
-                  <span style="width:2.25rem;height:2.25rem;border-radius:9999px;border:1px solid oklch(1 0 0 / 0.3);display:flex;align-items:center;justify-content:center;">${s.icon}</span>
-                  <span style="font-size:0.875rem;"><span style="opacity:0.7;">${s.label}</span><span style="display:block;font-size:0.75rem;opacity:0.5;">${s.handle}</span></span>
-                </a>`).join('')}
-              <a href="https://wa.me/${PHONE}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem;">
-                <span style="width:2.25rem;height:2.25rem;border-radius:9999px;border:1px solid oklch(1 0 0 / 0.3);background:oklch(1 0 0 / 0.1);display:flex;align-items:center;justify-content:center;">${I.whatsapp(18)}</span>
-                <span style="font-size:0.875rem;"><span style="opacity:0.7;">WhatsApp</span><span style="display:block;font-size:0.75rem;opacity:0.5;">Contáctanos</span></span>
-              </a>
-            </div>
-          </div>
-        </div>
-        <div style="border-top:1px solid oklch(1 0 0 / 0.2);margin-top:3rem;padding-top:2rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;">
-          <p style="font-size:0.75rem;opacity:0.5;margin:0;">© ${new Date().getFullYear()} PalCus Perú. Todos los derechos reservados.</p>
-          <a href="libro-reclamaciones.html" style="font-size:0.75rem;opacity:0.5;text-decoration:underline;">📋 Libro de Reclamaciones</a>
-        </div>
-      </div>
-    </footer>`;
+    return `<footer style="background:var(--primary);color:var(--primary-foreground);"><div style="max-width:80rem;margin:0 auto;padding:4rem 1rem;"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2.5rem;"><div><img id="footer-logo" src="${window.PalcusBranding.url_logo}" alt="${window.PalcusBranding.nombre_tienda}" class="invert" style="height:3rem;width:auto;margin-bottom:1.5rem;"><p style="font-size:0.875rem;opacity:0.7;line-height:1.6;">Moda casual exclusiva para mujer con 100% algodón peruano. Calidad, confort y estilo en cada prenda.</p></div><div><h4 style="font-family:'Syne',sans-serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.2em;font-weight:600;margin-bottom:1rem;">Ayuda</h4><ul style="list-style:none;padding:0;margin:0;font-size:0.875rem;opacity:0.7;display:flex;flex-direction:column;gap:0.5rem;"><li><a href="faq.html">Preguntas Frecuentes</a></li><li><a href="devoluciones.html">Devoluciones</a></li><li><a href="libro-reclamaciones.html">Libro de Reclamaciones</a></li></ul></div><div><h4 style="font-family:'Syne',sans-serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.2em;font-weight:600;margin-bottom:1rem;">Síguenos</h4><div style="display:flex;flex-direction:column;gap:0.75rem;">${social.map(s => `<a href="${s.href}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:0.75rem;"><span style="width:2.25rem;height:2.25rem;border-radius:9999px;border:1px solid oklch(1 0 0 / 0.3);display:flex;align-items:center;justify-content:center;">${s.icon}</span><span style="font-size:0.875rem;"><span style="opacity:0.7;">${s.label}</span><span style="display:block;font-size:0.75rem;opacity:0.5;">${s.handle}</span></span></a>`).join('')}<a href="https://wa.me/${PHONE}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem;"><span style="width:2.25rem;height:2.25rem;border-radius:9999px;border:1px solid oklch(1 0 0 / 0.3);background:oklch(1 0 0 / 0.1);display:flex;align-items:center;justify-content:center;">${I.whatsapp(18)}</span><span style="font-size:0.875rem;"><span style="opacity:0.7;">WhatsApp</span><span style="display:block;font-size:0.75rem;opacity:0.5;">Contáctanos</span></span></a></div></div></div><div style="border-top:1px solid oklch(1 0 0 / 0.2);margin-top:3rem;padding-top:2rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;"><p style="font-size:0.75rem;opacity:0.5;margin:0;">© ${new Date().getFullYear()} PalCus Perú. Todos los derechos reservados.</p><a href="libro-reclamaciones.html" style="font-size:0.75rem;opacity:0.5;text-decoration:underline;">📋 Libro de Reclamaciones</a></div></div></footer>`;
   }
 
   function buildFloating() {
-    return `
-      <div id="chatPanel" style="display:none;"></div>
-      <button id="faqBtn" class="faq-float animate-bounce-slow" aria-label="Preguntas frecuentes">
-        ${I.helpCircle(24)}
-        <span class="ping"></span>
-      </button>
-      <a href="https://wa.me/${PHONE}?text=Hola%20PalCus%20Per%C3%BA!%20Tengo%20una%20consulta" target="_blank" rel="noopener" class="whatsapp-float animate-pulse-soft" aria-label="Contactar por WhatsApp">
-        ${I.whatsapp(28)}
-      </a>
-      <div id="cartDrawerHost"></div>
-      <div id="searchModalHost"></div>
-    `;
+    return `<div id="chatPanel" style="display:none;"></div><button id="faqBtn" class="faq-float animate-bounce-slow" aria-label="Preguntas frecuentes">${I.helpCircle(24)}<span class="ping"></span></button><a href="https://wa.me/${PHONE}?text=Hola%20PalCus%20Per%C3%BA!%20Tengo%20una%20consulta" target="_blank" rel="noopener" class="whatsapp-float animate-pulse-soft" aria-label="Contactar por WhatsApp">${I.whatsapp(28)}</a><div id="cartDrawerHost"></div><div id="searchModalHost"></div>`;
   }
 
   // ---------- Cart Drawer ----------
   let cartOpen = false;
   function renderCart() {
     const host = document.getElementById('cartDrawerHost');
-    if (!host) return;
-    if (!cartOpen) { host.innerHTML = ''; return; }
+    if (!host || !cartOpen) { if(host) host.innerHTML=''; return; }
     const items = window.PalcusCart.read();
-    const code = window.PalcusCart.getOrderCode();
-    const total = window.PalcusCart.totalPrice();
-    const itemsHTML = items.length === 0 ? `
-      <div style="text-align:center;padding:4rem 0;">
-        ${I.shoppingBag(48)}
-        <p style="color:var(--muted-foreground);font-size:0.875rem;margin-top:1rem;">Tu carrito está vacío</p>
-      </div>` : items.map(it => `
-      <div style="display:flex;gap:1rem;">
-        <img src="${U.imageUrl(it.image)}" alt="${it.name}" style="width:5rem;height:6rem;object-fit:cover;">
-        <div style="flex:1;">
-          <h3 style="font-size:0.875rem;font-weight:500;margin:0;">${it.name}</h3>
-          <p style="font-size:0.75rem;color:var(--muted-foreground);margin:0.125rem 0 0;">Talla: ${it.size} · Color: ${it.color}${it.design ? ` · Diseño: ${it.design}` : ''}</p>
-          <p style="font-size:0.875rem;font-weight:600;margin:0.25rem 0 0;">S/${it.price.toFixed(2)}</p>
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;">
-            <button class="qty-dec" data-id="${it.id}" data-size="${it.size}" data-color="${it.color}" data-design="${it.design || ''}" data-q="${it.quantity-1}" style="width:1.5rem;height:1.5rem;border:1px solid var(--border);background:var(--background);display:flex;align-items:center;justify-content:center;">${I.minus()}</button>
-            <span style="font-size:0.75rem;width:1.5rem;text-align:center;">${it.quantity}</span>
-            <button class="qty-inc" data-id="${it.id}" data-size="${it.size}" data-color="${it.color}" data-design="${it.design || ''}" data-q="${it.quantity+1}" style="width:1.5rem;height:1.5rem;border:1px solid var(--border);background:var(--background);display:flex;align-items:center;justify-content:center;">${I.plus()}</button>
-            <button class="qty-rm" data-id="${it.id}" data-size="${it.size}" data-color="${it.color}" data-design="${it.design || ''}" style="margin-left:auto;background:none;border:none;color:var(--muted-foreground);">${I.trash()}</button>
-          </div>
-        </div>
-      </div>`).join('');
-
-    const footer = items.length === 0 ? '' : `
-      <div style="border-top:1px solid var(--border);padding:1.5rem;display:flex;flex-direction:column;gap:1rem;">
-        <div style="background:var(--accent);padding:0.75rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
-          <div style="min-width:0;">
-            <p style="font-size:0.625rem;text-transform:uppercase;letter-spacing:0.2em;font-family:'Syne',sans-serif;color:var(--muted-foreground);margin:0;">Código de compra</p>
-            <p style="font-family:'Syne',sans-serif;font-weight:bold;font-size:0.875rem;margin:0;">${code}</p>
-          </div>
-          <button id="copyCodeBtn" style="padding:0.5rem;background:none;border:none;" title="Copiar código">${I.copy()}</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-family:'Syne',sans-serif;font-size:0.875rem;text-transform:uppercase;letter-spacing:0.1em;">Total</span>
-          <span style="font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:bold;">S/${total.toFixed(2)}</span>
-        </div>
-        <button onclick="this.disabled=true; this.innerText='Procesando...'; window.PalcusCart.checkout()" class="btn-primary" style="width:100%; border:none; cursor:pointer;">${I.whatsapp(16)} Pedir por WhatsApp</button>
-        <button id="clearCartBtn" style="font-size:0.75rem;color:var(--muted-foreground);background:none;border:none;text-align:center;text-transform:uppercase;letter-spacing:0.1em;">Vaciar carrito</button>
-      </div>`;
-
-    host.innerHTML = `
-      <div class="drawer-overlay" id="drawerOverlay"></div>
-      <div class="drawer">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:1.5rem;border-bottom:1px solid var(--border);">
-          <h2 style="font-family:'Syne',sans-serif;font-size:1.125rem;font-weight:bold;text-transform:uppercase;letter-spacing:0.1em;display:flex;align-items:center;gap:0.5rem;">${I.shoppingBag()} Tu Carrito</h2>
-          <button id="closeCart" style="background:none;border:none;padding:0.25rem;">${I.x()}</button>
-        </div>
-        <div style="flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1.5rem;">${itemsHTML}</div>
-        ${footer}
-      </div>`;
-
+    const itemsHTML = items.length === 0 ? `<div style="text-align:center;padding:4rem 0;">${I.shoppingBag(48)}<p style="color:var(--muted-foreground);font-size:0.875rem;margin-top:1rem;">Tu carrito está vacío</p></div>` : items.map(it => `<div style="display:flex;gap:1rem;"><img src="${U.imageUrl(it.image)}" alt="${it.name}" style="width:5rem;height:6rem;object-fit:cover;"><div style="flex:1;"><h3 style="font-size:0.875rem;font-weight:500;margin:0;">${it.name}</h3><p style="font-size:0.875rem;font-weight:600;margin:0.25rem 0 0;">S/${it.price.toFixed(2)}</p></div></div>`).join('');
+    host.innerHTML = `<div class="drawer-overlay" id="drawerOverlay"></div><div class="drawer"><div style="display:flex;align-items:center;justify-content:space-between;padding:1.5rem;border-bottom:1px solid var(--border);"><h2>Carrito</h2><button id="closeCart">${I.x()}</button></div><div style="padding:1.5rem;">${itemsHTML}</div></div>`;
     document.getElementById('drawerOverlay').onclick = closeCart;
     document.getElementById('closeCart').onclick = closeCart;
-    host.querySelectorAll('.qty-dec,.qty-inc').forEach(b => b.onclick = () => {
-      window.PalcusCart.setQty(b.dataset.id, b.dataset.size, b.dataset.color, b.dataset.design, parseInt(b.dataset.q));
-      renderCart();
-    });
-    host.querySelectorAll('.qty-rm').forEach(b => b.onclick = () => {
-      window.PalcusCart.remove(b.dataset.id, b.dataset.size, b.dataset.color, b.dataset.design);
-      renderCart();
-    });
-    const clr = document.getElementById('clearCartBtn');
-    if (clr) clr.onclick = () => { window.PalcusCart.clear(); renderCart(); };
-    const cp = document.getElementById('copyCodeBtn');
-    if (cp) cp.onclick = () => { navigator.clipboard?.writeText(code); cp.innerHTML = I.check(14); setTimeout(() => cp.innerHTML = I.copy(), 1200); };
   }
   function openCart() { cartOpen = true; renderCart(); }
   function closeCart() { cartOpen = false; renderCart(); }
@@ -272,105 +149,40 @@
   let searchOpen = false;
   function renderSearch() {
     const host = document.getElementById('searchModalHost');
-    if (!host) return;
-    if (!searchOpen) { host.innerHTML = ''; return; }
-    host.innerHTML = `
-      <div class="search-overlay" id="searchOverlay"></div>
-      <div class="search-modal">
-        <div style="max-width:42rem;margin:0 auto;">
-          <div style="display:flex;align-items:center;gap:0.75rem;border-bottom:1px solid var(--border);padding-bottom:1rem;">
-            ${I.search(20)}
-            <input id="searchInput" type="text" placeholder="Buscar productos..." style="flex:1;background:transparent;font-family:'Syne',sans-serif;font-size:1.125rem;border:none;outline:none;" autofocus>
-            <button id="closeSearch" style="background:none;border:none;padding:0.25rem;">${I.x()}</button>
-          </div>
-          <div id="searchResults" style="margin-top:1.5rem;"></div>
-        </div>
-      </div>`;
+    if (!host || !searchOpen) { if(host) host.innerHTML=''; return; }
+    host.innerHTML = `<div class="search-overlay" id="searchOverlay"></div><div class="search-modal"><div style="display:flex;align-items:center;gap:0.75rem;border-bottom:1px solid var(--border);padding-bottom:1rem;">${I.search(20)}<input id="searchInput" type="text" placeholder="Buscar..." style="flex:1;border:none;outline:none;" autofocus><button id="closeSearch">${I.x()}</button></div><div id="searchResults" style="margin-top:1.5rem;"></div></div>`;
     document.getElementById('searchOverlay').onclick = () => { searchOpen = false; renderSearch(); };
     document.getElementById('closeSearch').onclick = () => { searchOpen = false; renderSearch(); };
-    const input = document.getElementById('searchInput');
-    input.oninput = (e) => {
-      const q = e.target.value;
-      const res = q.length >= 2 ? U.search(q) : [];
-      const resBox = document.getElementById('searchResults');
-      if (q.length < 2) { resBox.innerHTML = ''; return; }
-      if (res.length === 0) {
-        resBox.innerHTML = `<p style="color:var(--muted-foreground);font-size:0.875rem;text-align:center;padding:2rem 0;">No se encontraron productos para "${q}"</p>`;
-        return;
+  }
+
+  // ---------- Adaptive Icon Engine ----------
+  function processIconToWhite(url, callback) {
+    if (!url) return;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i+3] > 10) { // Si el pixel no es transparente
+          data[i] = 255;   // R -> Blanco
+          data[i+1] = 255; // G -> Blanco
+          data[i+2] = 255; // B -> Blanco
+        }
       }
-      resBox.innerHTML = `
-        <p style="font-size:0.75rem;color:var(--muted-foreground);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1rem;">${res.length} resultado${res.length!==1?'s':''}</p>
-        ${res.map(p => `
-          <a href="producto.html?id=${p.id}" style="display:flex;gap:1rem;padding:0.75rem;transition:background 0.2s;" onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='transparent'">
-            <img src="${U.imageUrl(p.image)}" alt="${p.name}" style="width:4rem;height:5rem;object-fit:cover;">
-            <div>
-              <h3 style="font-size:0.875rem;font-weight:500;margin:0;">${p.name}</h3>
-              <p style="font-size:0.75rem;color:var(--muted-foreground);margin:0.125rem 0 0;">${window.PALCUS_CATEGORY_LABELS[p.category]}</p>
-              <p style="font-size:0.875rem;font-weight:600;margin:0.25rem 0 0;">S/${p.price.toFixed(2)}</p>
-            </div>
-          </a>`).join('')}`;
+      ctx.putImageData(imageData, 0, 0);
+      callback(canvas.toDataURL());
     };
+    img.src = url;
   }
 
-  // ---------- Chat FAQ ----------
-  let chatOpen = false;
-  const QUICK = ['¿Cómo realizo un pedido?', '¿Métodos de pago?', '¿Tiempo de envío?', '¿Cómo elijo mi talla?', '¿Hacen devoluciones?'];
-  const ANSWERS = {
-    '¿Cómo realizo un pedido?': 'Agrega productos al carrito y al finalizar envías tu pedido por WhatsApp con un código único de compra. Te confirmamos disponibilidad y coordinamos pago + envío.',
-    '¿Métodos de pago?': 'Aceptamos transferencias (BCP, Interbank, BBVA), Yape, Plin y pago contra entrega en Lima Metropolitana.',
-    '¿Tiempo de envío?': 'Lima Metropolitana: 1-2 días hábiles. Provincias: 3-5 días hábiles. Envío gratis en compras mayores a S/200.',
-    '¿Cómo elijo mi talla?': 'Cada producto tiene su guía de tallas. Si tienes dudas, escríbenos por WhatsApp con tus medidas y te ayudamos.',
-    '¿Hacen devoluciones?': 'Sí, tienes 7 días calendario desde la recepción para solicitar cambio o devolución.',
-  };
-  let messages = [{ from: 'bot', text: '¡Hola! 👋 Soy el asistente de PalCus Perú. ¿En qué te puedo ayudar?' }];
-
-  function renderChat() {
-    const panel = document.getElementById('chatPanel');
-    const faqBtn = document.getElementById('faqBtn');
-    if (!panel) return;
-    if (!chatOpen) { panel.style.display = 'none'; faqBtn.innerHTML = I.helpCircle(24) + '<span class="ping"></span>'; return; }
-    faqBtn.innerHTML = I.x(22);
-    panel.style.display = 'block';
-    panel.className = 'chat-panel';
-    panel.innerHTML = `
-      <div class="chat-header">
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <div style="width:2.25rem;height:2.25rem;border-radius:9999px;background:oklch(1 0 0 / 0.15);display:flex;align-items:center;justify-content:center;">${I.helpCircle(18)}</div>
-          <div>
-            <p style="font-family:'Syne',sans-serif;font-weight:bold;font-size:0.875rem;text-transform:uppercase;letter-spacing:0.1em;margin:0;">Ayuda PalCus</p>
-            <p style="font-size:0.625rem;opacity:0.7;margin:0;">Respuestas rápidas</p>
-          </div>
-        </div>
-        <button id="closeChat" style="background:none;border:none;color:inherit;padding:0.25rem;">${I.x(18)}</button>
-      </div>
-      <div class="chat-messages" id="chatMsgs">
-        ${messages.map(m => `
-          <div class="chat-msg ${m.from}">
-            <div class="chat-bubble">
-              ${m.text}
-              ${m.link ? `<a href="${m.link.to}" style="display:block;margin-top:0.5rem;font-size:0.75rem;font-family:'Syne',sans-serif;text-transform:uppercase;letter-spacing:0.1em;text-decoration:underline;">${m.link.label}</a>` : ''}
-            </div>
-          </div>`).join('')}
-      </div>
-      <div class="chat-quick">
-        <p style="font-size:0.625rem;text-transform:uppercase;letter-spacing:0.2em;font-family:'Syne',sans-serif;color:var(--muted-foreground);margin:0;">Preguntas rápidas</p>
-        <div class="chat-quick-btns">
-          ${QUICK.map(q => `<button class="chat-quick-btn" data-q="${q}">${q}</button>`).join('')}
-        </div>
-        <a href="faq.html" style="margin-top:0.75rem;display:flex;align-items:center;justify-content:center;gap:0.5rem;font-size:0.75rem;font-family:'Syne',sans-serif;text-transform:uppercase;letter-spacing:0.1em;padding:0.5rem;border:1px solid var(--border);">${I.send(12)} Ver todas las preguntas</a>
-      </div>`;
-    document.getElementById('closeChat').onclick = () => { chatOpen = false; renderChat(); };
-    panel.querySelectorAll('.chat-quick-btn').forEach(b => b.onclick = () => {
-      const q = b.dataset.q;
-      messages.push({ from: 'user', text: q });
-      messages.push({ from: 'bot', text: ANSWERS[q] || 'Te recomiendo revisar nuestra sección de Preguntas Frecuentes.', link: { to: 'faq.html', label: 'Ver más preguntas →' } });
-      renderChat();
-      const m = document.getElementById('chatMsgs'); m.scrollTop = m.scrollHeight;
-    });
-  }
-
-  // ---------- Init ----------
-  function init() {
+  // ---------- Logic ----------
+  function render() {
     const headerHost = document.getElementById('site-header');
     const footerHost = document.getElementById('site-footer');
     const floatHost = document.getElementById('site-floating');
@@ -378,154 +190,80 @@
     if (footerHost) footerHost.innerHTML = buildFooter();
     if (floatHost) floatHost.innerHTML = buildFloating();
 
-    // Inyección universal del preloader si no existe
     if (!document.getElementById('global-preloader')) {
       const pre = document.createElement('div');
       pre.id = 'global-preloader';
-      pre.innerHTML = `
-        <img src="preloader-icon.png" alt="" class="preloader-img" style="filter:brightness(0)!important;">
-        <div class="preloader-bar"></div>
-      `;
+      pre.innerHTML = `<img src="preloader-icon.png" alt="" class="preloader-img"><div class="preloader-bar"></div>`;
       document.body.prepend(pre);
     }
 
     document.getElementById('cartBtn')?.addEventListener('click', openCart);
     document.getElementById('searchBtn')?.addEventListener('click', () => { searchOpen = true; renderSearch(); });
-    document.getElementById('faqBtn')?.addEventListener('click', () => { chatOpen = !chatOpen; renderChat(); });
     document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
       const m = document.getElementById('mobileMenu');
       m.style.display = m.style.display === 'block' ? 'none' : 'block';
     });
-
-    window.PalcusCart.update();
-    fetchBranding();
-
-    // NUEVO: Si los datos ya están listos (ej: carga rápida en local), pintar el nav de una vez
-    if (window.PalcusDbReady) {
-      updateNavLinks();
-      if (headerHost) headerHost.innerHTML = buildHeader();
-      if (footerHost) footerHost.innerHTML = buildFooter();
-    }
-
-    const pre = document.getElementById('global-preloader');
-    if (pre) {
-      const img = pre.querySelector('img');
-      if (img) {
-        img.style.filter = 'brightness(0)';
-        if (window.PalcusBranding.url_icono) {
-            const newSrc = `${window.PalcusBranding.url_icono}?v=1.3`;
-            if (img.src !== newSrc) {
-                img.style.opacity = '0';
-                img.onload = () => img.style.opacity = '1';
-                img.src = newSrc;
-            }
-        }
-      }
-    }
-
-    setTimeout(() => {
-      const p = document.getElementById('global-preloader');
-      if(p) {
-        p.classList.add('fade-out');
-        setTimeout(() => p.remove(), 800);
-      }
-    }, 1500);
   }
 
   async function fetchBranding() {
     try {
-      const resp = await fetch(API_BRANDING);
+      const resp = await fetch(`${API_BRANDING}?v=${new Date().getTime()}`);
       const data = await resp.json();
-      
-      // Actualizar variable global para re-renders
       window.PalcusBranding = { ...window.PalcusBranding, ...data };
-
-      // Actualizar Logos en el DOM actual
       const logoHeader = document.getElementById('main-logo');
       const logoFooter = document.getElementById('footer-logo');
+      const heroImg = document.getElementById('main-hero');
+      const topAnn = document.getElementById('top-announcement-bar');
+      const preImg = document.querySelector('.preloader-img');
+
       if (logoHeader && data.url_logo) logoHeader.src = data.url_logo;
       if (logoFooter && data.url_logo) logoFooter.src = data.url_logo;
-
-      // Actualizar Favicon adaptable
-      if (data.url_icono) {
-        setupAdaptiveFavicon(data.url_icono);
-      }
-
-      // Actualizar Preloader
-      const preImg = document.querySelector('.preloader-img');
-      if (preImg && data.url_icono) preImg.src = data.url_icono;
-
-      // Actualizar Hero (si estamos en index)
-      const heroImg = document.getElementById('main-hero');
       if (heroImg && data.url_hero) heroImg.src = data.url_hero;
-
-    } catch (e) { console.error('Error loading branding:', e); }
-  }
-
-  function setupAdaptiveFavicon(url) {
-    const favicon = document.querySelector('link[rel="icon"]');
-    if (!favicon) return;
-
-    const update = () => {
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      // Para el favicon, si es tema oscuro, intentamos invertirlo si es necesario
-      // O simplemente aplicamos una lógica de filtro vía Canvas si es posible
-      applyAdaptiveIcon(url, isDark, (newUrl) => {
-        favicon.href = newUrl;
-      });
-      // (Eliminada la inversión del preloader para mantenerlo negro siempre sobre blanco)
-    };
-
-    update();
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', update);
-  }
-
-  function applyAdaptiveIcon(url, isDark, callback) {
-    if (!url) return;
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
+      if (topAnn && data.top_announcement) topAnn.innerText = data.top_announcement;
       
-      if (isDark) {
-        // Invertir colores para tema oscuro (Negro -> Blanco)
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-          data[i] = 255 - data[i];     // R
-          data[i+1] = 255 - data[i+1]; // G
-          data[i+2] = 255 - data[i+2]; // B
-        }
-        ctx.putImageData(imageData, 0, 0);
+      if (data.url_icono) {
+        // 1. Icono del preloader directo
+        if (preImg) preImg.src = data.url_icono;
+        
+        // 2. Procesar a blanco para la pestaña (Favicon)
+        processIconToWhite(data.url_icono, (whiteUrl) => {
+           const fav = document.querySelector('link[rel="icon"]');
+           if (fav) fav.href = whiteUrl;
+        });
       }
-      
-      callback(canvas.toDataURL());
-    };
-    img.onerror = () => callback(url); // Fallback al original
-    img.src = url;
+    } catch (e) { console.error('Branding error:', e); }
+  }
+
+  function init() {
+    if (updateNavLinks()) render();
+    else render();
+    
+    fetchBranding();
+    
+    const retryInterval = setInterval(() => {
+      if (navLinks.length > 1) {
+        clearInterval(retryInterval);
+        return;
+      }
+      if (updateNavLinks()) {
+        render();
+        clearInterval(retryInterval);
+      }
+    }, 800);
+    setTimeout(() => clearInterval(retryInterval), 5000);
+
+    setTimeout(() => {
+      const p = document.getElementById('global-preloader');
+      if(p) { p.classList.add('fade-out'); setTimeout(() => p.remove(), 800); }
+    }, 1500);
   }
 
   window.PalcusLayout = { renderCart, openCart, closeCart };
-  
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  // Re-renderizar cuando los datos del catálogo estén listos
   window.addEventListener('palcus-data-ready', () => {
-    updateNavLinks();
-    const headerHost = document.getElementById('site-header');
-    const footerHost = document.getElementById('site-footer');
-    if (headerHost) headerHost.innerHTML = buildHeader();
-    if (footerHost) footerHost.innerHTML = buildFooter();
-    
-    // Volver a asignar eventos del menú móvil
-    document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
-      const m = document.getElementById('mobileMenu');
-      m.style.display = m.style.display === 'block' ? 'none' : 'block';
-    });
+    if (updateNavLinks()) render();
+    fetchBranding();
   });
 })();

@@ -38,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'social_instagram' => 'social_instagram',
         'social_tiktok'    => 'social_tiktok',
         'delivery_cost'    => 'delivery_cost',
+        'top_announcement' => 'top_announcement',
     ];
 
     foreach ($simpleFields as $postKey => $dbKey) {
@@ -203,6 +204,14 @@ $pageTitle  = 'Configuración del Sistema';
                 <div class="upload-zone py-8">
                   <input type="file" name="hero" onchange="previewImage(this, 'p-hero')">
                   <p class="text-sm font-bold">Selecciona un nuevo Banner Principal</p>
+                </div>
+              </div>
+              <div class="premium-card p-8">
+                <h2 class="text-xl font-bold mb-6">Barra de Anuncio Superior</h2>
+                <div class="space-y-4">
+                  <label class="text-sm font-bold text-slate-700">Texto del Anuncio</label>
+                  <input type="text" name="top_announcement" value="<?= e(getConfig('top_announcement') ?: 'Envío gratis en compras mayores a S/200 · 100% Algodón Peruano') ?>" class="glass-input" placeholder="Ej: Envío gratis en compras mayores a S/200...">
+                  <p class="text-xs text-slate-400">Este texto aparece en la parte más alta de la web (encima del menú).</p>
                 </div>
               </div>
             </div>
