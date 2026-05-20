@@ -221,7 +221,8 @@ $pageTitle  = 'Gestión de Productos';
                     <input type="hidden" name="action" value="toggle_activo"/>
                     <input type="hidden" name="id" value="<?= $p['id'] ?>"/>
                     <input type="hidden" name="valor" value="<?= $p['activo'] ? 0 : 1 ?>"/>
-                    <button type="submit" class="text-xs font-bold px-3 py-1 rounded-lg border btn-sm <?= $p['activo'] ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-400 border-slate-200' ?>">
+                    <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm transition-all duration-200 hover:scale-105 active:scale-95 border <?= $p['activo'] ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200' ?>" title="<?= $p['activo'] ? 'Desactivar Producto' : 'Activar Producto' ?>">
+                      <span class="w-2 h-2 rounded-full <?= $p['activo'] ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400' ?>"></span>
                       <?= $p['activo'] ? 'Activo' : 'Inactivo' ?>
                     </button>
                   </form>
@@ -233,12 +234,24 @@ $pageTitle  = 'Gestión de Productos';
                       "precio_venta"=>(float)$p["precio_venta"],"precio_compra"=>(float)$p["precio_compra"],
                       "descripcion"=>$p["descripcion"],"caracteristicas"=>$p["caracteristicas"],
                       "info_modelo"=>$p["info_modelo"],"activo"=>(int)$p["activo"],"sku"=>$p["sku"]
-                    ]) ?>)' class="btn-sm bg-blue-50 text-blue-600 border-blue-200">Editar</button>
-                    <a href="variaciones/?producto_id=<?= $p['id'] ?>" class="btn-sm bg-purple-50 text-purple-600 border-purple-200">Variaciones</a>
-                    <form method="POST" onsubmit="return confirm('¿Eliminar «<?= e($p['nombre']) ?>»? Solo si no tiene variaciones.')">
+                    ]) ?>)' class="w-8 h-8 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600 border border-blue-200 shadow-sm hover:bg-blue-100 hover:text-blue-700 hover:scale-110 active:scale-95 transition-all duration-200" title="Editar Producto">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                      </svg>
+                    </button>
+                    <a href="variaciones/?producto_id=<?= $p['id'] ?>" class="w-8 h-8 rounded-xl flex items-center justify-center bg-purple-50 text-purple-600 border border-purple-200 shadow-sm hover:bg-purple-100 hover:text-purple-700 hover:scale-110 active:scale-95 transition-all duration-200" title="Gestionar Variaciones">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m11.142 0L21.75 12l-4.179-2.25m-11.142 0L12 7.5l4.179 2.25m-11.142 0l4.179 2.25m11.142 0l-4.179 2.25m-11.142 0L12 16.5l4.179-2.25" />
+                      </svg>
+                    </a>
+                    <form method="POST" onsubmit="return confirm('¿Eliminar «<?= e($p['nombre']) ?>»? Solo si no tiene variaciones.')" class="inline">
                       <input type="hidden" name="action" value="delete_producto"/>
                       <input type="hidden" name="id" value="<?= $p['id'] ?>"/>
-                      <button type="submit" class="btn-sm bg-red-50 text-red-500 border-red-200">Eliminar</button>
+                      <button type="submit" class="w-8 h-8 rounded-xl flex items-center justify-center bg-red-50 text-red-500 border border-red-200 shadow-sm hover:bg-red-100 hover:text-red-600 hover:scale-110 active:scale-95 transition-all duration-200" title="Eliminar Producto">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                      </button>
                     </form>
                   </div>
                 </td>

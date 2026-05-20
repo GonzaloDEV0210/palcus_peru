@@ -219,7 +219,7 @@ $pageTitle  = 'Configuración del Sistema';
               <!-- Previsualización Logo Sidebar -->
               <div class="premium-card p-6">
                 <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Vista Sidebar</h3>
-                <div class="bg-slate-900 rounded-2xl p-6 flex justify-center border-4 border-white shadow-sm">
+                <div class="bg-zinc-900 rounded-2xl p-6 flex justify-center border-4 border-white shadow-sm">
                   <img id="p-logo" src="<?= e(getConfig('url_logo')) ?>" class="max-h-12 object-contain">
                 </div>
               </div>

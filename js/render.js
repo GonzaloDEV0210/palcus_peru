@@ -23,11 +23,82 @@
     return all.length ? all : [PLACEHOLDER];
   }
 
+  /* ── Extraer imágenes exclusivas por color ── */
+  function extractImagesForColor(p, colorName) {
+    if (!colorName) return extractImages(p);
+    
+    const varImages = [];
+    (p.variations || []).forEach(v => {
+      if (v.color === colorName) {
+        if (v.gallery && Array.isArray(v.gallery)) {
+          varImages.push(...v.gallery);
+        } else if (v.image) {
+          varImages.push(v.image);
+        } else if (v.imagen_url) {
+          try {
+            const parsed = JSON.parse(v.imagen_url);
+            if (Array.isArray(parsed)) varImages.push(...parsed);
+            else varImages.push(v.imagen_url);
+          } catch(e) {
+            varImages.push(v.imagen_url);
+          }
+        }
+      }
+    });
+
+    const all = [...new Set(varImages)].filter(
+      img => img && typeof img === 'string' && img.startsWith('http')
+    );
+
+    // Fallback si no hay imágenes exclusivas para ese color
+    if (!all.length) {
+      const fallback = [...new Set([p.image, ...(p.gallery||[])])].filter(
+        img => img && typeof img === 'string' && img.startsWith('http')
+      );
+      return fallback.length ? fallback : [PLACEHOLDER];
+    }
+    return all;
+  }
+
+  /* ── Expande productos duplicándolos por color ── */
+  function expandProductsByColor(products) {
+    const expanded = [];
+    (products || []).forEach(p => {
+      const colors = p.colors || [];
+      if (colors.length === 0) {
+        expanded.push({
+          ...p,
+          colorSelected: null,
+          displayName: p.name,
+          displayImage: p.image || PLACEHOLDER,
+          displayUrl: `producto.html?id=${p.id}`
+        });
+      } else {
+        colors.forEach(c => {
+          const colorImages = extractImagesForColor(p, c.name);
+          const displayImage = colorImages[0] || p.image || PLACEHOLDER;
+          expanded.push({
+            ...p,
+            colorSelected: c.name,
+            displayName: `${p.name} — ${c.name}`,
+            displayImage: displayImage,
+            displayUrl: `producto.html?id=${p.id}&color=${encodeURIComponent(c.name)}`
+          });
+        });
+      }
+    });
+    return expanded;
+  }
+
   /* ── TARJETA DE PRODUCTO ── */
   function productCard(p) {
     const colors = p.colors || [];
-    const sizes  = p.sizes  || [];
-    const imgs   = extractImages(p);
+    // Mostrar imágenes del primer color disponible
+    const firstColor = colors.length ? colors[0].name : null;
+    const imgs   = extractImagesForColor(p, firstColor);
+    const displayName = p.name;
+    const displayUrl  = `producto.html?id=${p.id}`;
+    
     const now    = new Date();
     const diffDays = Math.floor((now - new Date(p.createdAt||now)) / 86400000);
     let badge = '';
@@ -35,32 +106,43 @@
     else if ((p.stock||0) < 5 && (p.stock||0) > 0) badge = `<div class="product-tag" style="z-index:10;">Últimas unidades</div>`;
 
     return `
-      <a href="producto.html?id=${p.id}" class="product-card" data-product-id="${p.id}">
-        <div class="img-wrap">
-          ${badge}
-          <div class="product-slider-container">
-            ${imgs.map((img,i) => `<img src="${U.imageUrl(img)}" class="slider-img ${i===0?'active':''}"
-              style="opacity:${i===0?1:0};z-index:${i===0?2:1};transition:opacity 1.5s ease;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
-              alt="${p.name}" loading="lazy">`).join('')}
+      <div class="product-card" data-product-id="${p.id}">
+        <a href="${displayUrl}" style="text-decoration:none;color:inherit;display:block;">
+          <div class="img-wrap">
+            ${badge}
+            <div class="product-slider-container">
+              ${imgs.map((img,i) => `<img src="${U.imageUrl(img)}" class="slider-img ${i===0?'active':''}"
+                style="opacity:${i===0?1:0};z-index:${i===0?2:1};transition:opacity 1.5s ease;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
+                alt="${displayName}" loading="lazy">`).join('')}
+            </div>
+          </div>
+          <div style="padding:.875rem .25rem 0;">
+            <h3 style="font-size:.8125rem;font-weight:400;margin:0;color:var(--foreground);letter-spacing:.01em;">${displayName}</h3>
+            <p style="font-size:.8125rem;font-weight:600;margin:.3rem 0 0;color:var(--foreground);">S/${(p.price||0).toFixed(2)}</p>
+          </div>
+        </a>
+        <div style="padding:0 .25rem .5rem;">
+          <div style="display:flex;gap:.45rem;margin-top:.6rem;align-items:center;flex-wrap:wrap;min-height:14px;">
+            ${colors.map(c => {
+              const swatchUrl = `producto.html?id=${p.id}&color=${encodeURIComponent(c.name)}`;
+              const style = `width:10px;height:10px;border-radius:50%;background:${c.hex};border:1px solid rgba(0,0,0,.15);flex-shrink:0;transition:transform .15s,opacity .15s;display:inline-block;`;
+              return `<a href="${swatchUrl}" title="${c.name}" class="product-swatch-link" style="${style}" onmouseover="this.style.transform='scale(1.3)';" onmouseout="this.style.transform='scale(1)';"></a>`;
+            }).join('')}
           </div>
         </div>
-        <div style="padding:.875rem .25rem .5rem;">
-          <h3 style="font-size:.8125rem;font-weight:400;margin:0;color:var(--foreground);letter-spacing:.01em;">${p.name}</h3>
-          <p style="font-size:.8125rem;font-weight:600;margin:.3rem 0 0;color:var(--foreground);">S/${(p.price||0).toFixed(2)}</p>
-          <div style="display:flex;gap:.35rem;margin-top:.6rem;flex-wrap:wrap;">
-            ${colors.map(c=>`<span title="${c.name}" style="width:10px;height:10px;border-radius:50%;background:${c.hex};border:1px solid rgba(0,0,0,.15);flex-shrink:0;"></span>`).join('')}
-          </div>
-        </div>
-      </a>`;
+      </div>`;
   }
 
   function renderGrid(containerId, products) {
     const el = document.getElementById(containerId);
-    if (el) el.innerHTML = products.map(productCard).join('');
+    if (el) {
+      el.innerHTML = (products || []).map(productCard).join('');
+    }
   }
 
   /* ══════════════════════════════════════════════════════
      DETALLE DE PRODUCTO — Inspiración NET-A-PORTER / COS
+     Actualizado para variantes dinámicas y URL amigable
   ══════════════════════════════════════════════════════ */
   function renderProductDetail() {
     const params = new URLSearchParams(location.search);
@@ -78,14 +160,35 @@
     }
 
     U.trackView(p.id);
-    document.title = `${p.name} — PalCus Perú`;
 
-    const allImgs  = extractImages(p);
     const sizes    = p.sizes  || [];
     const colors   = p.colors || [];
     const designs  = p.designs || [];
 
-    let selSize = null, selColor = null, selDesign = null, qty = 1;
+    // Validar si un color tiene stock en al menos una talla
+    function isColorAvailable(colorName) {
+      return (p.variations || []).some(v => v.color === colorName && parseInt(v.stock || 0) > 0);
+    }
+
+    // Validar si una talla tiene stock para un color
+    function isSizeAvailableForColor(sizeName, colorName) {
+      if (!colorName) return true;
+      return (p.variations || []).some(v => v.color === colorName && v.talla === sizeName && parseInt(v.stock || 0) > 0);
+    }
+
+    // Preseleccionar el color desde la URL, o el primero disponible con stock por defecto
+    const urlColor = params.get('color');
+    let selColor = colors.some(c => c.name.toLowerCase() === (urlColor || "").toLowerCase())
+      ? colors.find(c => c.name.toLowerCase() === (urlColor || "").toLowerCase()).name
+      : null;
+
+    if (!selColor) {
+      // Buscar el primer color que tenga stock
+      const colorWithStock = colors.find(c => isColorAvailable(c.name));
+      selColor = colorWithStock ? colorWithStock.name : (colors.length ? colors[0].name : null);
+    }
+
+    let selSize = null, selDesign = null, qty = 1;
 
     const CSS = `
       <style>
@@ -101,8 +204,8 @@
         #pd-info{padding-top:.5rem;align-self:start;}
         .pd-label{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.18em;color:var(--muted-foreground);margin:0 0 .5rem;}
         .pd-section{margin-bottom:2rem;}
-        .pd-swatch{width:1.5rem;height:1.5rem;border-radius:50%;cursor:pointer;border:1.5px solid transparent;transition:border-color .2s,transform .2s;flex-shrink:0;}
-        .pd-swatch.sel{border-color:var(--foreground);transform:scale(1.15);}
+        .pd-swatch{width:1.5rem;height:1.5rem;border-radius:50%;cursor:pointer;border:1.5px solid rgba(0,0,0,0.08);transition:border-color .2s,transform .2s;flex-shrink:0;}
+        .pd-swatch.sel{border-color:var(--foreground);transform:scale(1.15);border-width:1.5px;}
         .pd-swatch:hover:not(.sel){border-color:var(--muted-foreground);}
         .pd-pill{display:inline-flex;align-items:center;height:2rem;padding:0 .875rem;font-size:.75rem;font-weight:500;letter-spacing:.04em;cursor:pointer;border:1px solid var(--border);transition:all .15s;background:transparent;color:var(--foreground);}
         .pd-pill.sel{background:var(--foreground);color:var(--background);}
@@ -128,17 +231,23 @@
                                .reduce((s,v)=>s+parseInt(v.stock||0),0);
     }
 
-    function getActiveImg() {
+    function getActiveImg(currentImgs) {
       if (selColor && selDesign && p.imageMap?.[selColor]?.[selDesign]) return p.imageMap[selColor][selDesign];
       if (selColor && p.imageMap?.[selColor]) { const k=Object.keys(p.imageMap[selColor])[0]; if(k) return p.imageMap[selColor][k]; }
-      return allImgs[0];
+      return currentImgs[0] || PLACEHOLDER;
     }
 
     function render() {
       const stock    = getStock();
-      const activeImg = getActiveImg();
+      const currentImgs = extractImagesForColor(p, selColor);
+      const activeImg = getActiveImg(currentImgs);
       const validDesigns = selColor && p.imageMap ? Object.keys(p.imageMap[selColor]||{}) : designs;
-      if (selColor && validDesigns.length && !selDesign) selDesign = validDesigns[0];
+      if (selColor && validDesigns.length && (!selDesign || !validDesigns.includes(selDesign))) {
+        selDesign = validDesigns[0];
+      }
+
+      // Actualizar título del documento dinámicamente según el color
+      document.title = `${p.name} ${selColor ? '— ' + selColor : ''} — PalCus Perú`;
 
       const stockLine = stock > 0
         ? `<span style="font-size:.7rem;color:#16a34a;font-weight:600;text-transform:uppercase;letter-spacing:.1em;">${stock} disponibles</span>`
@@ -151,9 +260,9 @@
           <!-- GALERÍA -->
           <div id="pd-gallery">
             <img id="pd-main-img" src="${U.imageUrl(activeImg)}" alt="${p.name}">
-            ${allImgs.length > 1 ? `
+            ${currentImgs.length > 1 ? `
             <div class="pd-thumbs">
-              ${allImgs.map(img => `
+              ${currentImgs.map(img => `
                 <img class="pd-thumb ${img===activeImg?'active':''}"
                      src="${U.imageUrl(img)}" data-img="${img}" alt="${p.name}" loading="lazy">
               `).join('')}
@@ -166,6 +275,7 @@
             <!-- Breadcrumb -->
             <p style="font-size:.625rem;text-transform:uppercase;letter-spacing:.18em;color:var(--muted-foreground);margin:0 0 2.5rem;">
               <a href="index.html" style="color:inherit;text-decoration:none;">Inicio</a>
+              &nbsp;/&nbsp;<a href="catalogo.html" style="color:inherit;text-decoration:none;">Catálogo</a>
               &nbsp;/&nbsp;${p.name}
             </p>
 
@@ -183,19 +293,29 @@
             <!-- Color -->
             ${colors.length ? `
             <div class="pd-section" id="pd-color-sec">
-              <p class="pd-label">Color${selColor?` — ${selColor}`:''}</p>
+              <p class="pd-label">Color ${selColor ? ` — ${selColor}` : ''}</p>
               <div style="display:flex;gap:.625rem;flex-wrap:wrap;">
-                ${colors.map(c=>`<button class="pd-swatch ${selColor===c.name?'sel':''}" data-color="${c.name}"
-                  style="background:${c.hex};" title="${c.name}"></button>`).join('')}
+                ${colors.map(c => {
+                  const hasStock = isColorAvailable(c.name);
+                  const isSelected = selColor === c.name;
+                  const classes = `pd-swatch ${isSelected ? 'sel' : ''} ${!hasStock ? 'opacity-20 pointer-events-none cursor-not-allowed' : ''}`;
+                  const titleAttr = hasStock ? c.name : `${c.name} (Sin Stock)`;
+                  return `<button class="${classes}" data-color="${c.name}" style="background:${c.hex};" title="${titleAttr}"></button>`;
+                }).join('')}
               </div>
             </div>` : ''}
 
             <!-- Talla -->
             ${sizes.length ? `
             <div class="pd-section" id="pd-size-sec">
-              <p class="pd-label">Talla</p>
+              <p class="pd-label">Talla ${selSize ? ` — ${selSize}` : ''}</p>
               <div style="display:flex;gap:.375rem;flex-wrap:wrap;">
-                ${sizes.map(s=>`<button class="pd-pill ${selSize===s?'sel':''}" data-size="${s}">${s}</button>`).join('')}
+                ${sizes.map(s => {
+                  const hasStock = isSizeAvailableForColor(s, selColor);
+                  const isSelected = selSize === s;
+                  const classes = `pd-pill ${isSelected ? 'sel' : ''} ${!hasStock ? 'opacity-25 line-through pointer-events-none cursor-not-allowed' : ''}`;
+                  return `<button class="${classes}" data-size="${s}">${s}</button>`;
+                }).join('')}
               </div>
             </div>` : ''}
 
@@ -213,7 +333,7 @@
             <button id="pd-add" class="pd-cta">
               ${stock > 0 ? 'Agregar al carrito' : 'Sin disponibilidad'}
             </button>
-            <a href="https://wa.me/${window.PalcusCart.PHONE}?text=${encodeURIComponent(`Hola PalCus! Me interesa: ${p.name} — S/${p.price.toFixed(2)}`)}"
+            <a href="https://wa.me/${window.PalcusCart.PHONE}?text=${encodeURIComponent(`Hola PalCus! Me interesa: ${p.name} ${selColor ? '— ' + selColor : ''} — S/${p.price.toFixed(2)}`)}"
                target="_blank" rel="noopener" class="pd-cta ghost">
               ${window.PalcusIcons.whatsapp(14)}&nbsp;&nbsp;Consultar por WhatsApp
             </a>
@@ -250,7 +370,23 @@
         host.querySelectorAll('.pd-thumb').forEach(x => x.classList.remove('active'));
         img.classList.add('active');
       });
-      host.querySelectorAll('.pd-swatch').forEach(b=>b.onclick=()=>{ selColor=b.dataset.color; render(); });
+      
+      host.querySelectorAll('.pd-swatch').forEach(b=>b.onclick=()=>{
+        selColor = b.dataset.color;
+        
+        // Si la talla seleccionada anteriormente no tiene stock para el nuevo color, la deseleccionamos
+        if (selSize && !isSizeAvailableForColor(selSize, selColor)) {
+          selSize = null;
+        }
+        
+        // Actualizar URL sin recargar la página
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('color', selColor);
+        window.history.replaceState(null, '', newUrl.toString());
+        
+        render();
+      });
+      
       host.querySelectorAll('.pd-pill'  ).forEach(b=>b.onclick=()=>{ selSize =b.dataset.size;  render(); });
       host.querySelector('#pd-qd').onclick=()=>{ qty=Math.max(1,qty-1); host.querySelector('#pd-qty').textContent=qty; };
       host.querySelector('#pd-qi').onclick=()=>{ qty++; host.querySelector('#pd-qty').textContent=qty; };
@@ -263,7 +399,7 @@
         if (!selSize && sizes.length) {
           const s=document.getElementById('pd-size-sec'); s.classList.add('pd-err'); s.scrollIntoView({block:'center',behavior:'smooth'}); setTimeout(()=>s.classList.remove('pd-err'),350); return;
         }
-        window.PalcusCart.add({...p,image:getActiveImg()}, selSize, selColor, selDesign, qty);
+        window.PalcusCart.add({...p,image:getActiveImg(currentImgs)}, selSize, selColor, selDesign, qty);
         const btn=host.querySelector('#pd-add');
         btn.textContent='✓  Agregado';
         setTimeout(()=>{ btn.textContent='Agregar al carrito'; window.PalcusLayout.openCart(); },600);

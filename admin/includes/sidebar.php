@@ -50,11 +50,11 @@ $groupLabels = [
 ?>
 
 <aside id="sidebar"
-  class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 flex flex-col transition-transform duration-300 lg:translate-x-0 -translate-x-full overflow-x-hidden"
+  class="fixed inset-y-0 left-0 z-50 w-64 bg-zinc-900 flex flex-col transition-transform duration-300 lg:translate-x-0 -translate-x-full overflow-x-hidden"
   aria-label="Sidebar">
 
   <!-- Logo -->
-  <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-800 shrink-0">
+  <div class="flex items-center gap-3 px-5 py-5 border-b border-zinc-800 shrink-0">
     <img
       src="<?= getConfig('url_icono') ?: 'https://res.cloudinary.com/dv7nmkmpm/image/upload/v1778354037/vjypdweg16udzxoptdxz.png' ?>"
       alt="<?= e(getConfig('nombre_tienda') ?: 'Palcus Peru') ?>"
@@ -63,10 +63,10 @@ $groupLabels = [
     />
     <div class="truncate">
       <p class="text-white font-bold text-sm leading-none truncate">Palcus Peru</p>
-      <p class="text-slate-500 text-xs mt-0.5 truncate">Panel de Gestión</p>
+      <p class="text-zinc-500 text-xs mt-0.5 truncate">Panel de Gestión</p>
     </div>
     <!-- Close btn mobile -->
-    <button id="sidebarClose" class="ml-auto lg:hidden text-slate-400 hover:text-white shrink-0">
+    <button id="sidebarClose" class="ml-auto lg:hidden text-zinc-400 hover:text-white shrink-0">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
       </svg>
@@ -77,7 +77,7 @@ $groupLabels = [
   <nav class="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-1">
     <?php foreach ($nav as $group => $items): ?>
       <?php if ($groupLabels[$group]): ?>
-      <p class="text-slate-500 text-[10px] font-semibold uppercase tracking-widest px-3 pt-4 pb-1 truncate">
+      <p class="text-zinc-500 text-[10px] font-semibold uppercase tracking-widest px-3 pt-4 pb-1 truncate">
         <?= $groupLabels[$group] ?>
       </p>
       <?php endif; ?>
@@ -89,7 +89,7 @@ $groupLabels = [
            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
                   <?= $isActive
                     ? 'bg-white/10 text-white border border-white/10'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white' ?>">
+                    : 'text-zinc-400 hover:bg-zinc-800 hover:text-white' ?>">
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <?= sidebarIcon($item['icon']) ?>
           </svg>
@@ -103,18 +103,18 @@ $groupLabels = [
   </nav>
 
   <!-- User info -->
-  <div class="border-t border-slate-800 p-4">
+  <div class="border-t border-zinc-800 p-4">
     <div class="flex items-center gap-3">
       <div class="w-9 h-9 rounded-full bg-white/10 border border-white/10 flex items-center justify-center shrink-0">
         <span class="text-white text-sm font-bold"><?= strtoupper(substr($user['nombre'] ?? 'U', 0, 1)) ?></span>
       </div>
       <div class="flex-1 min-w-0">
         <p class="text-white text-sm font-medium truncate"><?= htmlspecialchars($user['nombre'] ?? '') ?></p>
-        <p class="text-slate-500 text-xs capitalize truncate"><?= $user['rol'] ?? '' ?></p>
+        <p class="text-zinc-500 text-xs capitalize truncate"><?= $user['rol'] ?? '' ?></p>
       </div>
       <a href="<?= APP_URL ?>/logout.php"
          title="Cerrar sesión"
-         class="text-slate-500 hover:text-red-400 transition-colors shrink-0">
+         class="text-zinc-500 hover:text-red-400 transition-colors shrink-0">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
